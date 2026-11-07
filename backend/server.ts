@@ -3,11 +3,15 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import healthRoutes from './routes/health.js';
+
 const app = express();
 
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://skillconnect2-six.vercel.app',
+    ],
     credentials: true,
   })
 );
