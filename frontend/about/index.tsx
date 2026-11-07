@@ -345,8 +345,7 @@ function About() {
                     <h2>Ready To Join SkillConnect?</h2>
 
                     <p>
-                        Whether you need a professional or want to
-                        grow your service, SkillConnect is built for you.
+                        Join workers and clients already using SkillConnect.
                     </p>
 
                     <div className="hero-buttons">
