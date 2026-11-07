@@ -1,6 +1,6 @@
 # SKILLCONNECT
 
-SkillConnect is a platform that connects clients with nearby skilled workers.
+SkillConnect is a platform that connects clients with nearby skilled workers, making it easier for people to find and hire reliable professionals within their area.
 
 ## Technology Stack
 
@@ -8,12 +8,14 @@ SkillConnect is a platform that connects clients with nearby skilled workers.
 - HTML
 - CSS
 - JavaScript
+- TypeScript
 - React
 - Vite
 
 ### Backend
 - Node.js
 - Express.js
+- TypeScript
 
 ### Database
 - PostgreSQL
@@ -29,76 +31,29 @@ SkillConnect is a platform that connects clients with nearby skilled workers.
 ### Deployment
 - Vercel (Frontend)
 - Render (Backend)
+- Supabase (Database)
 
 ## Project Structure
 
+```text
 skillconnect2/
 │
 ├── frontend/
+│   ├── package.json
+│   ├── index.html
+│   ├── main.jsx
+│   ├── config.jsx
+│   ├── homepage/
+│   └── other-pages/
 │
 ├── backend/
+│   ├── package.json
+│   ├── server.js
 │   ├── routes/
 │   ├── models/
 │   ├── controllers/
 │   └── prisma/
+│       └── schema.prisma
 │
 ├── README.md
 └── .gitignore
-
-## Development
-
-### Frontend
-
-Navigate to the frontend directory:
-
-    cd frontend
-
-Install dependencies:
-
-    npm install
-
-Start development server:
-
-    npm run dev
-
-### Backend
-
-Navigate to the backend directory:
-
-    cd backend
-
-Install dependencies:
-
-    npm install
-
-Start development server:
-
-    npm run dev
-
-## Database
-
-SkillConnect uses PostgreSQL hosted on Supabase.
-
-Prisma ORM manages database operations and migrations.
-
-Database credentials must be stored in backend/.env.
-
-Never commit environment variables or database passwords to GitHub.
-
-## Deployment
-
-Frontend: Vercel
-
-Backend: Render
-
-Database: Supabase PostgreSQL
-
-## Version Control
-
-Git is used for version control.
-
-GitHub hosts the project repository.
-
-## Project Status
-
-Under development.

@@ -11,9 +11,6 @@ dist/
 build/
 generated/
 
-# Prisma
-backend/prisma/migrations/
-
 # Logs
 *.log
 npm-debug.log*
