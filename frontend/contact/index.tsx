@@ -1,34 +1,156 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { API_ENDPOINT } from '../config';
 import './style.css';
 
-function About() {
+function Contact() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [formMessage, setFormMessage] = useState('');
+    const [messageType, setMessageType] = useState('');
+    const [invalidField, setInvalidField] = useState('');
+    const [modal, setModal] = useState({
+        open: false,
+        title: '',
+        message: '',
+        success: false
+    });
+
     const menuToggleRef = useRef<HTMLButtonElement>(null);
+    const sidebarCloseRef = useRef<HTMLButtonElement>(null);
+    const modalContinueRef = useRef<HTMLButtonElement>(null);
+    const lastFocusedRef = useRef<HTMLElement | null>(null);
+    const formRef = useRef<HTMLFormElement>(null);
+
+    function openSidebar() {
+        setSidebarOpen(true);
+    }
 
     function closeSidebar() {
         setSidebarOpen(false);
         menuToggleRef.current?.focus();
     }
 
+    function showModal(title: string, message: string, success = false) {
+        lastFocusedRef.current = document.activeElement as HTMLElement;
+        setModal({ open: true, title, message, success });
+    }
+
+    function closeModal() {
+        setModal({ open: false, title: '', message: '', success: false });
+        lastFocusedRef.current?.focus();
+    }
+
     useEffect(() => {
-        if (!sidebarOpen) return;
+        if (sidebarOpen) sidebarCloseRef.current?.focus();
+    }, [sidebarOpen]);
+
+    useEffect(() => {
+        document.body.style.overflow =
+            sidebarOpen || modal.open ? 'hidden' : '';
 
         function handleKeyDown(event: KeyboardEvent) {
-            if (event.key === 'Escape') closeSidebar();
+            if (event.key !== 'Escape') return;
+
+            if (modal.open) {
+                closeModal();
+            } else if (sidebarOpen) {
+                closeSidebar();
+            }
         }
 
         document.addEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = 'hidden';
 
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = '';
+            document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [sidebarOpen]);
+    }, [sidebarOpen, modal.open]);
+
+    useEffect(() => {
+        if (modal.open) modalContinueRef.current?.focus();
+    }, [modal.open]);
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        if (isSending) return;
+
+        const form = formRef.current;
+        if (!form) return;
+
+        const formData = new FormData(form);
+        const fullName = String(formData.get('fullName') || '').trim();
+        const email = String(formData.get('email') || '').trim();
+        const message = String(formData.get('message') || '').trim();
+
+        setInvalidField('');
+
+        let error = '';
+        let field = '';
+
+        if (fullName.length < 2 || fullName.length > 100) {
+            error = 'Please enter your name (2–100 characters).';
+            field = 'fullName';
+        } else if (
+            email.length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+        ) {
+            error = 'Please enter a valid email address.';
+            field = 'email';
+        } else if (!message || message.length > 5000) {
+            error = 'Please enter a message of 1–5,000 characters.';
+            field = 'message';
+        }
+
+        if (field) {
+            setInvalidField(field);
+            showModal('Please check your details', error);
+            return;
+        }
+
+        setIsSending(true);
+        setFormMessage('');
+        setMessageType('');
+
+        try {
+            const response = await fetch(API_ENDPOINT('/api/contact'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fullName, email, message })
+            });
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message || 'Unable to send your message. Please try again.'
+                );
+            }
+
+            form.reset();
+
+            const successMessage =
+                result.message || 'Thank you for contacting SkillConnect. We will get back to you soon.';
+
+            setFormMessage(result.message || 'Your message was sent successfully.');
+            setMessageType('success');
+
+            showModal('Message Sent Successfully!', successMessage, true);
+
+        } catch (error) {
+            showModal(
+                'Message Not Sent',
+                error instanceof Error
+                    ? error.message
+                    : 'Something went wrong. Please check your connection and try again.'
+            );
+        } finally {
+            setIsSending(false);
+        }
+    }
 
     return (
         <>
-            {/* HEADER */}
             <header className="header">
                 <nav className="navbar" aria-label="Main navigation">
                     <a href="/" className="logo">SKILLCONNECT</a>
@@ -41,19 +163,20 @@ function About() {
 
                     <button
                         ref={menuToggleRef}
-                        className="menu-toggle"
                         type="button"
-                        onClick={() => setSidebarOpen(true)}
+                        className="menu-toggle"
+                        onClick={openSidebar}
                         aria-label="Open navigation menu"
                         aria-expanded={sidebarOpen}
                         aria-controls="mobileSidebar"
                     >
-                        <span></span><span></span><span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
                     </button>
                 </nav>
             </header>
 
-            {/* MOBILE SIDEBAR */}
             <div
                 className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`}
                 onClick={closeSidebar}
@@ -69,9 +192,11 @@ function About() {
             >
                 <div className="sidebar-header">
                     <span className="sidebar-title">Menu</span>
+
                     <button
-                        className="sidebar-close"
+                        ref={sidebarCloseRef}
                         type="button"
+                        className="sidebar-close"
                         onClick={closeSidebar}
                         aria-label="Close navigation menu"
                     >
@@ -80,101 +205,148 @@ function About() {
                 </div>
 
                 <nav className="sidebar-links">
-                    <a href="/home/" onClick={closeSidebar}>Home</a>
                     <a href="/about/" onClick={closeSidebar}>About</a>
+                    <a href="/contact/" onClick={closeSidebar}>Contact</a>
                     <a href="/services/" onClick={closeSidebar}>Find a worker</a>
-                    <a href="/worker-authentication/" onClick={closeSidebar}>Become a worker</a>
+                    <a href="/worker-authentication/" onClick={closeSidebar}>
+                        Become a worker
+                    </a>
                 </nav>
             </aside>
 
-            {/* MAIN CONTENT */}
             <main>
-                <section className="about-hero">
-                    <div className="about-content">
-                        <span className="hero-badge">About SkillConnect</span>
-                        <h1>Connecting Skills <span>With Opportunities</span></h1>
+                <section className="hero">
+                    <div className="hero-content">
+                        <span className="hero-badge">Contact SkillConnect</span>
+                        <h1>Let's <span>Connect</span> Together</h1>
                         <p>
-                            SkillConnect makes it easier for clients to find skilled
-                            workers nearby while helping talented workers reach more customers.
+                            Have questions, suggestions, or need support?
+                            We're always ready to help you.
                         </p>
                     </div>
                 </section>
 
-                <section className="about-section">
-                    <h2>Who We Are</h2>
-                    <p className="section-intro">
-                        SkillConnect is a platform designed to bring clients and skilled
-                        workers together. Whether someone needs a professional or wants
-                        to offer their skills, we make that connection easier.
-                    </p>
-                </section>
+                <section className="section">
+                    <h2>Contact Information</h2>
 
-                <section className="about-section">
-                    <div className="about-cards">
-                        <article className="about-card">
-                            <div className="about-icon">🎯</div>
-                            <h3>Our Mission</h3>
-                            <p>
-                                To make it easier for people to find reliable skilled
-                                workers while creating more opportunities for workers.
-                            </p>
+                    <div className="cards">
+                        <article className="card">
+                            <div className="icon">📧</div>
+                            <h3>Email</h3>
+                            <p>support@skillconnect.com</p>
                         </article>
 
-                        <article className="about-card">
-                            <div className="about-icon">🌍</div>
-                            <h3>Our Vision</h3>
-                            <p>
-                                To become a trusted platform connecting skilled workers
-                                and clients across communities around the world.
-                            </p>
+                        <article className="card">
+                            <div className="icon">📞</div>
+                            <h3>Phone</h3>
+                            <p>+234 800 000 0000</p>
                         </article>
 
-                        <article className="about-card">
-                            <div className="about-icon">🤝</div>
-                            <h3>Our Values</h3>
-                            <p>
-                                We believe in trust, transparency, accessibility and
-                                creating meaningful opportunities for everyone.
-                            </p>
+                        <article className="card">
+                            <div className="icon">📍</div>
+                            <h3>Location</h3>
+                            <p>Nigeria</p>
                         </article>
                     </div>
                 </section>
 
-                <section className="about-section">
-                    <h2>How We Make A Difference</h2>
-                    <div className="about-cards">
-                        <article className="about-card">
+                <section className="section">
+                    <h2>Send Us A Message</h2>
+
+                    <form
+                        ref={formRef}
+                        className="contact-form"
+                        onSubmit={handleSubmit}
+                        noValidate
+                    >
+                        <div className="form-group">
+                            <label htmlFor="fullName">Your Name</label>
+                            <input
+                                id="fullName"
+                                name="fullName"
+                                type="text"
+                                placeholder="Enter your full name"
+                                autoComplete="name"
+                                className={invalidField === 'fullName' ? 'invalid' : ''}
+                                onChange={() => setInvalidField('')}
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="email">Your Email</label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                placeholder="Enter your email"
+                                autoComplete="email"
+                                className={invalidField === 'email' ? 'invalid' : ''}
+                                onChange={() => setInvalidField('')}
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="message">Your Message</label>
+                            <textarea
+                                id="message"
+                                name="message"
+                                rows={6}
+                                placeholder="Write your message..."
+                                className={invalidField === 'message' ? 'invalid' : ''}
+                                onChange={() => setInvalidField('')}
+                                required
+                            />
+                        </div>
+
+                        <div className={`form-message ${messageType}`} role="status">
+                            {formMessage}
+                        </div>
+
+                        <button type="submit" disabled={isSending}>
+                            {isSending ? 'Sending…' : 'Send Message'}
+                        </button>
+                    </form>
+                </section>
+
+                <section className="section">
+                    <h2>How Can We Help?</h2>
+
+                    <div className="cards">
+                        <article className="card">
                             <h3>For Clients</h3>
                             <p>
-                                Find skilled professionals based on their services
-                                and proximity to your location.
+                                Need help finding skilled workers or making bookings?
+                                Our support team is ready to assist you.
                             </p>
                         </article>
 
-                        <article className="about-card">
+                        <article className="card">
                             <h3>For Workers</h3>
                             <p>
-                                Showcase your skills, reach potential customers
-                                and grow your opportunities.
+                                Need help with your service, verification, or profile?
+                                We're here for you.
                             </p>
                         </article>
 
-                        <article className="about-card">
-                            <h3>For Communities</h3>
+                        <article className="card">
+                            <h3>Platform Support</h3>
                             <p>
-                                Help connect local talent with people who need
-                                their skills and services.
+                                Report bugs, ask questions, or send us suggestions
+                                to improve SkillConnect.
                             </p>
                         </article>
                     </div>
                 </section>
 
-                <section className="about-cta">
-                    <h2>Be Part Of SkillConnect</h2>
+                <section className="cta">
+                    <h2>Ready To Get Started?</h2>
                     <p>
-                        Whether you need a skilled worker or have a skill to offer,
-                        there's a place for you here.
+                        Join SkillConnect today and connect with trusted workers
+                        or new customers.
                     </p>
+
                     <div className="hero-buttons">
                         <a href="/services/" className="client-btn">Find Workers</a>
                         <a href="/worker-authentication/" className="worker-btn">
@@ -184,12 +356,41 @@ function About() {
                 </section>
             </main>
 
-            {/* FOOTER */}
             <footer>
                 <p>© {new Date().getFullYear()} SkillConnect. All rights reserved.</p>
             </footer>
+
+            {modal.open && (
+                <div
+                    className={`contact-modal ${modal.success ? 'success' : ''}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="modalTitle"
+                    aria-describedby="modalText"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget) closeModal();
+                    }}
+                >
+                    <div className="modal-box">
+                        <div className="modal-icon" aria-hidden="true">
+                            {modal.success ? '✓' : '!'}
+                        </div>
+
+                        <h2 id="modalTitle">{modal.title}</h2>
+                        <p id="modalText">{modal.message}</p>
+
+                        <button
+                            ref={modalContinueRef}
+                            type="button"
+                            onClick={closeModal}
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
 
-export default About;
+export default Contact;
