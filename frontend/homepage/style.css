@@ -145,18 +145,18 @@ a:focus-visible {
 .mobile-sidebar {
     position: fixed;
     top: 0;
-    right: 0;
+    left: 0;
     width: min(300px, 85%);
     height: 100vh;
     height: 100dvh;
     z-index: 1999;
     padding: 25px;
     background: #020617;
-    border-left: 1px solid var(--border);
-    transform: translateX(100%);
+    border-right: 1px solid var(--border);
+    transform: translateX(-100%);
     visibility: hidden;
     transition: transform .3s, visibility .3s;
-    box-shadow: -15px 0 40px rgba(0, 0, 0, .35);
+    box-shadow: 15px 0 40px rgba(0, 0, 0, .35);
 }
 
 .mobile-sidebar.open {

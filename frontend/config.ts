@@ -5,7 +5,7 @@
 // ==========================
 
 const DEVELOPMENT_API_URL = "http://localhost:5000";
-const PRODUCTION_API_URL = "https://skillconnect-qjhr.onrender.com";
+const PRODUCTION_API_URL = "https://skillconnect-api-j0vt.onrender.com";
 
 const REFRESH_TOKEN_ENDPOINT = "/api/auth/refresh";
 
