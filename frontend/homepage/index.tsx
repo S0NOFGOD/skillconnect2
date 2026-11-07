@@ -213,6 +213,14 @@ function Homepage() {
 
                 <nav className="sidebar-links">
 
+                    <a href="/about/" onClick={closeSidebar}>
+                        About
+                    </a>
+
+                    <a href="/contact/" onClick={closeSidebar}>
+                        Contact
+                    </a>
+
                     <a href="/services/" onClick={closeSidebar}>
                         Find a worker
                     </a>
@@ -221,13 +229,6 @@ function Homepage() {
                         Become a worker
                     </a>
 
-                    <a href="/about/" onClick={closeSidebar}>
-                        About
-                    </a>
-
-                    <a href="/contact/" onClick={closeSidebar}>
-                        Contact
-                    </a>
 
                 </nav>
 
