@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import healthRoutes from './routes/health.js';
+import contactRoutes from './routes/contact.js';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/health', healthRoutes);
+app.use('/api/contact', contactRoutes);
 
 const PORT = process.env.PORT || 5000;
 

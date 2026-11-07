@@ -87,7 +87,7 @@ function About() {
 
                     <div className="nav-links">
                         <a href="/services/">Services</a>
-                        <a href="/about/" aria-current="page">About</a>
+                        <a href="/home/" aria-current="page">Home</a>
                         <a href="/contact/">Contact</a>
                     </div>
 

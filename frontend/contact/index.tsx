@@ -79,7 +79,6 @@ function Contact() {
         if (!form) return;
 
         const formData = new FormData(form);
-        const fullName = String(formData.get('fullName') || '').trim();
         const email = String(formData.get('email') || '').trim();
         const message = String(formData.get('message') || '').trim();
 
@@ -88,10 +87,7 @@ function Contact() {
         let error = '';
         let field = '';
 
-        if (fullName.length < 2 || fullName.length > 100) {
-            error = 'Please enter your name (2–100 characters).';
-            field = 'fullName';
-        } else if (
+        if (
             email.length > 254 ||
             !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
         ) {
@@ -116,7 +112,7 @@ function Contact() {
             const response = await fetch(API_ENDPOINT('/api/contact'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fullName, email, message })
+                body: JSON.stringify({ email, message })
             });
 
             const result = await response.json().catch(() => ({}));
@@ -157,8 +153,8 @@ function Contact() {
 
                     <div className="nav-links">
                         <a href="/services/">Services</a>
+                        <a href="/home/">Home</a>
                         <a href="/about/">About</a>
-                        <a href="/contact/">Contact</a>
                     </div>
 
                     <button
@@ -205,8 +201,8 @@ function Contact() {
                 </div>
 
                 <nav className="sidebar-links">
+                    <a href="/home/" onClick={closeSidebar}>Home</a>
                     <a href="/about/" onClick={closeSidebar}>About</a>
-                    <a href="/contact/" onClick={closeSidebar}>Contact</a>
                     <a href="/services/" onClick={closeSidebar}>Find a worker</a>
                     <a href="/worker-authentication/" onClick={closeSidebar}>
                         Become a worker
@@ -259,20 +255,6 @@ function Contact() {
                         onSubmit={handleSubmit}
                         noValidate
                     >
-                        <div className="form-group">
-                            <label htmlFor="fullName">Your Name</label>
-                            <input
-                                id="fullName"
-                                name="fullName"
-                                type="text"
-                                placeholder="Enter your full name"
-                                autoComplete="name"
-                                className={invalidField === 'fullName' ? 'invalid' : ''}
-                                onChange={() => setInvalidField('')}
-                                required
-                            />
-                        </div>
-
                         <div className="form-group">
                             <label htmlFor="email">Your Email</label>
                             <input
