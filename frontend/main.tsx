@@ -4,22 +4,17 @@ import Homepage from './homepage';
 import About from './about';
 import Contact from './contact';
 import Services from './services';
+import WorkerAuthentication from './worker-authentication';
 
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
 function App() {
     switch (path) {
-        case '/about':
-            return <About />;
-
-        case '/contact':
-            return <Contact />;
-
-        case '/services':
-            return <Services />;
-
-        default:
-            return <Homepage />;
+        case '/about': return <About />;
+        case '/contact': return <Contact />;
+        case '/services': return <Services />;
+        case '/worker-authentication': return <WorkerAuthentication />;
+        default: return <Homepage />;
     }
 }
 
