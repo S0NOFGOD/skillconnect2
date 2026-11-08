@@ -13,3 +13,27 @@ model Contact {
   message   String
   createdAt DateTime @default(now())
 }
+
+model Worker {
+  id           String    @id @default(cuid())
+  fullName     String
+  latitude     Float
+  longitude    Float
+  profilePhoto String?
+  services     Service[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Service {
+  id            String   @id @default(cuid())
+  workerId      String
+  skill         String
+  adminApproval String   @default("pending")
+  worker        Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([workerId])
+  @@index([adminApproval])
+}

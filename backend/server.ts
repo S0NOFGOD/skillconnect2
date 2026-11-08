@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import healthRoutes from './routes/health.js';
 import contactRoutes from './routes/contact.js';
+import servicesRoutes from './routes/services.js';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(cookieParser());
 
 app.use('/api/health', healthRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/services', servicesRoutes);
 
 const PORT = process.env.PORT || 5000;
 

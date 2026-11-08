@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
-import { saveContactMessage } from '../models/contact.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function createContact(req: Request, res: Response) {
     try {
@@ -30,7 +32,18 @@ export async function createContact(req: Request, res: Response) {
             });
         }
 
-        await saveContactMessage(email, message);
+        await prisma.contact.upsert({
+            where: {
+                email,
+            },
+            create: {
+                email,
+                message,
+            },
+            update: {
+                message,
+            },
+        });
 
         return res.status(201).json({
             success: true,
