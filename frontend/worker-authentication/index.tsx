@@ -12,7 +12,6 @@ const show=(title:string,message:string,action?:()=>void,cooldown=false)=>setNot
 const closeNotice=()=>{const action=notice?.action;setNotice(null);action?.()};
 const toggle=(id:string)=>setVisible(p=>({...p,[id]:!p[id]}));
 const saveEmail=(email:string)=>sessionStorage.setItem('workerEmail',email);
-
 function closeSidebar(){setSidebarOpen(false);menuRef.current?.focus()}
 
 useEffect(()=>{
@@ -123,10 +122,6 @@ return <>
 <span className="hero-badge">Trusted • Verified • Nearby</span>
 <h1>Grow Your <span>Business</span> With SkillConnect</h1>
 <p className="hero-description">Connect with nearby clients, showcase your skills and grow your service business.</p>
-<div className="benefits">
-<div className="benefit-card"><div className="benefit-icon">✓</div><div><h3>Find Clients</h3><p>Connect with people looking for your skills.</p></div></div>
-<div className="benefit-card"><div className="benefit-icon">✓</div><div><h3>Grow Your Business</h3><p>Get discovered by clients near you.</p></div></div>
-</div>
 </section>
 
 <section className="auth-section"><div className="auth-card">
@@ -149,6 +144,11 @@ return <>
 <button type="button" className="google-button" disabled={!!busy} onClick={googleAuth}><span className="google-icon">G</span>{busy==='google'?'Connecting…':'Continue with Google'}</button>
 </form>}
 </div></section>
+
+<div className="benefits">
+<div className="benefit-card"><div className="benefit-icon">✓</div><div><h3>Find Clients</h3><p>Connect with people looking for your skills.</p></div></div>
+<div className="benefit-card"><div className="benefit-icon">✓</div><div><h3>Grow Your Business</h3><p>Get discovered by clients near you.</p></div></div>
+</div>
 </main>
 
 <footer><p>© {new Date().getFullYear()} SkillConnect. All rights reserved.</p></footer>
