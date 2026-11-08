@@ -23,6 +23,8 @@ function Services() {
     const [skillFilter, setSkillFilter] = useState('');
     const [skillSearch, setSkillSearch] = useState('');
     const [notice, setNotice] = useState<Notice | null>(null);
+    const [locationDenied, setLocationDenied] = useState(false);
+    const [locationMessage, setLocationMessage] = useState('');
     const menuToggleRef = useRef<HTMLButtonElement>(null);
 
     function closeSidebar() {
@@ -98,7 +100,11 @@ function Services() {
                         message = 'Location request timed out. Please try again.';
                     }
 
-                    reject(new Error(message));
+                    reject(
+                        error.code === error.PERMISSION_DENIED
+                            ? Object.assign(new Error(message), { locationDenied: true })
+                            : new Error(message)
+                    );
                 },
                 {
                     enableHighAccuracy: false,
@@ -109,51 +115,64 @@ function Services() {
         });
     }
 
-    useEffect(() => {
-        async function loadWorkers() {
-            setLoading(true);
-            setWorkers([]);
+    async function loadWorkers() {
+        setLoading(true);
+        setWorkers([]);
+        setLocationDenied(false);
+        setLocationMessage('');
 
-            try {
-                const { latitude, longitude } = await getDeviceLocation();
+        try {
+            const { latitude, longitude } = await getDeviceLocation();
 
-                const result = await API_REQUEST('/api/services', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ latitude, longitude })
-                });
+            const result = await API_REQUEST('/api/services', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latitude, longitude })
+            });
 
-                let data: { success?: boolean; message?: string; workers?: Worker[] };
+            let data: { success?: boolean; message?: string; workers?: Worker[] };
 
-                if (result && typeof (result as Response).json === 'function') {
-                    const response = result as Response;
-                    data = await response.json();
+            if (result && typeof (result as Response).json === 'function') {
+                const response = result as Response;
+                data = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(data.message || 'Unable to load nearby workers.');
-                    }
-                } else {
-                    data = result as typeof data;
-
-                    if (data.success === false) {
-                        throw new Error(data.message || 'Unable to load nearby workers.');
-                    }
+                if (!response.ok) {
+                    throw new Error(data.message || 'Unable to load nearby workers.');
                 }
+            } else {
+                data = result as typeof data;
 
-                if (!Array.isArray(data.workers)) {
-                    throw new Error('Unable to load workers. Please try again.');
+                if (data.success === false) {
+                    throw new Error(data.message || 'Unable to load nearby workers.');
                 }
-
-                setWorkers(data.workers);
-            } catch (error) {
-                showNotification(
-                    error instanceof Error ? error.message : 'Unable to load nearby workers.'
-                );
-            } finally {
-                setLoading(false);
             }
-        }
 
+            if (!Array.isArray(data.workers)) {
+                throw new Error('Unable to load workers. Please try again.');
+            }
+
+            setWorkers(data.workers);
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                'locationDenied' in error &&
+                error.locationDenied === true
+            ) {
+                setLocationDenied(true);
+                setLocationMessage(error.message);
+            } else {
+                showNotification(
+                    error instanceof Error
+                        ? error.message
+                        : 'Unable to load nearby workers.'
+                );
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
         loadWorkers();
     }, []);
 
@@ -163,6 +182,7 @@ function Services() {
 
     const filteredWorkers = workers.filter(worker => {
         const skill = String(worker.skill || '').toLowerCase();
+
         return (
             (!skillFilter || skill === skillFilter.toLowerCase()) &&
             (!skillSearch || skill.includes(skillSearch.trim().toLowerCase()))
@@ -181,11 +201,15 @@ function Services() {
     }
 
     function createPhotoPlaceholder() {
-        return <div className="worker-photo-placeholder" aria-label="Worker photo unavailable">👤</div>;
+        return (
+            <div className="worker-photo-placeholder" aria-label="Worker photo unavailable">
+                👤
+            </div>
+        );
     }
 
     return (
-        <>
+        <div className="services-page">
             <header className="header">
                 <nav className="navbar" aria-label="Main navigation">
                     <a href="/" className="logo">SKILLCONNECT</a>
@@ -291,7 +315,22 @@ function Services() {
                         </div>
                     )}
 
-                    {!loading && workers.length > 0 && filteredWorkers.length > 0 && (
+                    {!loading && locationDenied && (
+                        <div className="workers-empty location-permission">
+                            <div className="empty-icon">📍</div>
+                            <h3>Location Access Required</h3>
+                            <p>{locationMessage}</p>
+                            <button
+                                type="button"
+                                className="location-retry-button"
+                                onClick={loadWorkers}
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    )}
+
+                    {!loading && !locationDenied && workers.length > 0 && filteredWorkers.length > 0 && (
                         <div className="workers-container">
                             {filteredWorkers.map((worker, index) => (
                                 <div
@@ -337,7 +376,7 @@ function Services() {
                         </div>
                     )}
 
-                    {!loading && workers.length === 0 && (
+                    {!loading && !locationDenied && workers.length === 0 && (
                         <div className="workers-empty">
                             <div className="empty-icon">🔎</div>
                             <h3>No Workers Found</h3>
@@ -345,7 +384,7 @@ function Services() {
                         </div>
                     )}
 
-                    {!loading && workers.length > 0 && filteredWorkers.length === 0 && (
+                    {!loading && !locationDenied && workers.length > 0 && filteredWorkers.length === 0 && (
                         <div className="workers-empty">
                             <div className="empty-icon">🔎</div>
                             <h3>No Workers Found</h3>
@@ -387,7 +426,7 @@ function Services() {
             <footer>
                 <p>© {new Date().getFullYear()} SkillConnect. All rights reserved.</p>
             </footer>
-        </>
+        </div>
     );
 }
 
