@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import Homepage from './homepage';
 import About from './about';
 import Contact from './contact';
+import Services from './services';
 
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
@@ -13,6 +14,9 @@ function App() {
 
         case '/contact':
             return <Contact />;
+
+        case '/services':
+            return <Services />;
 
         default:
             return <Homepage />;
