@@ -108,7 +108,7 @@ history.replaceState({},document.title,location.pathname);
 return <>
 <header className="header"><nav className="navbar" aria-label="Main navigation">
 <a href="/" className="logo">SKILLCONNECT</a>
-<div className="nav-links"><a href="/home/">Home</a><a href="/about/">About</a><a href="/contact/">Contact</a><a href="/services/">Services</a><</div>
+<div className="nav-links"><a href="/home/">Home</a><a href="/about/">About</a><a href="/contact/">Contact</a><a href="/services/">Services</a></div>
 <button ref={menuRef} type="button" className="menu-toggle" onClick={()=>setSidebarOpen(true)} aria-label="Open navigation menu" aria-expanded={sidebarOpen} aria-controls="mobileSidebar"><span/><span/><span/></button>
 </nav></header>
 
