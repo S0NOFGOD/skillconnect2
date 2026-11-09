@@ -229,8 +229,8 @@ function WorkerAuthentication() {
             <nav className="navbar" aria-label="Main navigation">
                 <a href="/" className="logo">SKILLCONNECT</a>
                 <div className="nav-links">
-                    <a href="/home/">Home</a><a href="/about/">About</a>
-                    <a href="/contact/">Contact</a><a href="/services/">Find a worker</a>
+                    <a href="/home/">Home</a><a href="/about/">About us</a>
+                    <a href="/contact/">Contact us</a><a href="/services/">Find a worker</a>
                 </div>
                 <button ref={menuRef} type="button" className="menu-toggle"
                     onClick={() => setSidebarOpen(true)} aria-label="Open navigation menu"
@@ -251,7 +251,7 @@ function WorkerAuthentication() {
                     aria-label="Close navigation menu">×</button>
             </div>
             <nav className="sidebar-links">
-                {['Home', 'About', 'Contact', 'Find a worker'].map((name, i) =>
+                {['Home', 'About us', 'Contact us', 'Find a worker'].map((name, i) =>
                     <a key={name} href={['/home/', '/about/', '/contact/', '/services/'][i]}
                         onClick={closeSidebar}>{name}</a>
                 )}

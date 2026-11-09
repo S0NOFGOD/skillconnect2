@@ -216,8 +216,8 @@ function Services() {
 
                     <div className="nav-links">
                         <a href="/home/">Home</a>
-                        <a href="/about/">About</a>
-                        <a href="/contact/">Contact</a>
+                        <a href="/about/">About us</a>
+                        <a href="/contact/">Contact us</a>
                         <a href="/worker-authentication/">Become a worker</a>
                     </div>
 
@@ -264,8 +264,8 @@ function Services() {
 
                 <nav className="sidebar-links">
                     <a href="/home/" onClick={closeSidebar}>Home</a>
-                    <a href="/about/" onClick={closeSidebar}>About</a>
-                    <a href="/contact/" onClick={closeSidebar}>Contact</a>
+                    <a href="/about/" onClick={closeSidebar}>About us</a>
+                    <a href="/contact/" onClick={closeSidebar}>Contact us</a>
                     <a href="/worker-authentication/" onClick={closeSidebar}>Become a worker</a>
                 </nav>
             </aside>

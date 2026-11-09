@@ -87,7 +87,7 @@ function About() {
 
                     <div className="nav-links">
                         <a href="/home/" aria-current="page">Home</a>
-                        <a href="/contact/">Contact</a>
+                        <a href="/contact/">Contact us</a>
                         <a href="/services/">Find a worker</a>
                         <a href="/worker-authentication/">Become a worker</a>
                     </div>
@@ -152,7 +152,7 @@ function About() {
                     </a>
 
                     <a href="/contact/" onClick={closeSidebar}>
-                        Contact
+                        Contact us
                     </a>
 
                     <a href="/services/" onClick={closeSidebar}>

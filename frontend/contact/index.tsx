@@ -153,7 +153,7 @@ function Contact() {
 
                     <div className="nav-links">
                         <a href="/home/">Home</a>
-                        <a href="/about/">About</a>
+                        <a href="/about/">About us</a>
                         <a href="/services/">Find a worker</a>
                         <a href="/worker-authentication/">Become a worker</a>
                     </div>
@@ -203,7 +203,7 @@ function Contact() {
 
                 <nav className="sidebar-links">
                     <a href="/home/" onClick={closeSidebar}>Home</a>
-                    <a href="/about/" onClick={closeSidebar}>About</a>
+                    <a href="/about/" onClick={closeSidebar}>About us</a>
                     <a href="/services/" onClick={closeSidebar}>Find a worker</a>
                     <a href="/worker-authentication/" onClick={closeSidebar}>
                         Become a worker
