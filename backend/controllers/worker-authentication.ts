@@ -613,6 +613,12 @@ export const googleCallback: RequestHandler = async (req, res) => {
             where: { email }
         });
 
+        console.log('GOOGLE WORKER LOOKUP:', {
+            email,
+            found: Boolean(worker),
+            accountType: worker?.accountType || null
+        });
+
         // EXISTING PASSWORD ACCOUNT
 
         if (worker && worker.accountType === 'password') {
