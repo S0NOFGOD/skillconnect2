@@ -153,9 +153,10 @@ function Homepage() {
                     </a>
 
                     <div className="nav-links">
-                        <a href="/services/">Services</a>
                         <a href="/about/">About</a>
                         <a href="/contact/">Contact</a>
+                        <a href="/services/">Find a worker</a>
+                        <a href="/worker-authentication/">Become a worker</a>
                     </div>
 
                     <button
@@ -263,11 +264,11 @@ function Homepage() {
                         <div className="hero-buttons">
 
                             <a href="/services/" className="client-btn">
-                                Find Workers
+                                Find a worker
                             </a>
 
                             <a href="/worker-authentication/" className="worker-btn">
-                                Become a Worker
+                                Become a worker
                             </a>
 
                         </div>
@@ -400,11 +401,11 @@ function Homepage() {
                     <div className="hero-buttons">
 
                         <a href="/services/" className="client-btn">
-                            Find Workers
+                            Find a worker
                         </a>
 
                         <a href="/worker-authentication/" className="worker-btn">
-                            Join As Worker
+                            Become a worker
                         </a>
 
                     </div>

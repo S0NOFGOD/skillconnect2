@@ -152,9 +152,10 @@ function Contact() {
                     <a href="/" className="logo">SKILLCONNECT</a>
 
                     <div className="nav-links">
-                        <a href="/services/">Services</a>
                         <a href="/home/">Home</a>
                         <a href="/about/">About</a>
+                        <a href="/services/">Find a worker</a>
+                        <a href="/worker-authentication/">Become a worker</a>
                     </div>
 
                     <button
@@ -330,9 +331,9 @@ function Contact() {
                     </p>
 
                     <div className="hero-buttons">
-                        <a href="/services/" className="client-btn">Find Workers</a>
+                        <a href="/services/" className="client-btn">Find a worker</a>
                         <a href="/worker-authentication/" className="worker-btn">
-                            Become a Worker
+                            Become a worker
                         </a>
                     </div>
                 </section>

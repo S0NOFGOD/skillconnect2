@@ -275,7 +275,7 @@ function WorkerAuthentication() {
                     <a href="/home/">Home</a>
                     <a href="/about/">About</a>
                     <a href="/contact/">Contact</a>
-                    <a href="/services/">Services</a>
+                    <a href="/services/">Find a worker</a>
                 </div>
 
                 <button
@@ -321,7 +321,7 @@ function WorkerAuthentication() {
                 <a href="/home/" onClick={closeSidebar}>Home</a>
                 <a href="/about/" onClick={closeSidebar}>About</a>
                 <a href="/contact/" onClick={closeSidebar}>Contact</a>
-                <a href="/services/" onClick={closeSidebar}>Services</a>
+                <a href="/services/" onClick={closeSidebar}>Find a worker</a>
             </nav>
         </aside>
 

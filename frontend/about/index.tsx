@@ -86,9 +86,10 @@ function About() {
                     </a>
 
                     <div className="nav-links">
-                        <a href="/services/">Services</a>
                         <a href="/home/" aria-current="page">Home</a>
                         <a href="/contact/">Contact</a>
+                        <a href="/services/">Find a worker</a>
+                        <a href="/worker-authentication/">Become a worker</a>
                     </div>
 
                     <button
@@ -351,17 +352,17 @@ function About() {
                     <div className="hero-buttons">
 
                         <a
-                            href="/worker-authentication/"
-                            className="worker-btn"
-                        >
-                            Become A Worker
-                        </a>
-
-                        <a
                             href="/services/"
                             className="client-btn"
                         >
-                            Find Workers
+                            Find a worker
+                        </a>
+
+                        <a
+                            href="/worker-authentication/"
+                            className="worker-btn"
+                        >
+                            Become a worker
                         </a>
 
                     </div>
