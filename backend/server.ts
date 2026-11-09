@@ -5,18 +5,17 @@ import cookieParser from 'cookie-parser';
 import healthRoutes from './routes/health.js';
 import contactRoutes from './routes/contact.js';
 import servicesRoutes from './routes/services.js';
+import workerAuthenticationRoutes from './routes/worker-authentication.js';
 
 const app = express();
 
-app.use(
-  cors({
-    origin: [
-      'http://localhost:5173',
-      'https://skillconnect2-six.vercel.app',
-    ],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://skillconnect2-six.vercel.app',
+  ],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -24,6 +23,7 @@ app.use(cookieParser());
 app.use('/api/health', healthRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/services', servicesRoutes);
+app.use('/api/worker-authentication', workerAuthenticationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

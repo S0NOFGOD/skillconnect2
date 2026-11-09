@@ -226,7 +226,7 @@ export async function getNearbyWorkers(
 
         const nearbyWorkers: {
             workerId: string;
-            fullName: string;
+            fullName: string | null;
             profilePhoto: string | null;
             skill: string;
             serviceId: string;
@@ -234,6 +234,11 @@ export async function getNearbyWorkers(
         }[] = [];
 
         for (const worker of workers) {
+            if (
+                worker.latitude === null ||
+                worker.longitude === null
+            ) continue;
+
             const distance = calculateDistance(
                 latitude,
                 longitude,

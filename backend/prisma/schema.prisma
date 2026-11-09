@@ -15,14 +15,35 @@ model Contact {
 }
 
 model Worker {
-  id           String    @id @default(cuid())
-  fullName     String
-  latitude     Float
-  longitude    Float
-  profilePhoto String?
-  services     Service[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                         String    @id @default(cuid())
+  email                      String    @unique
+  passwordHash               String?
+  googleId                   String?   @unique
+  accountType                String    @default("password")
+  emailVerified              Boolean   @default(false)
+  profileCompleted           Boolean   @default(false)
+
+  fullName                   String?
+  latitude                   Float?
+  longitude                  Float?
+  profilePhoto               String?
+
+  emailOtpHash               String?
+  emailOtpExpires            DateTime?
+  emailOtpResendCount        Int       @default(0)
+  emailOtpCooldownUntil      DateTime?
+
+  passwordResetOtpHash       String?
+  passwordResetOtpExpires    DateTime?
+  passwordResetOtpResendCount Int      @default(0)
+  passwordResetOtpCooldownUntil DateTime?
+  passwordResetOtpVerified   Boolean   @default(false)
+
+  refreshTokenHash           String?
+
+  services                   Service[]
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 }
 
 model Service {
