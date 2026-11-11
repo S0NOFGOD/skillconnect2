@@ -72,10 +72,10 @@ function WorkerAuthentication() {
     const menuRef = useRef<HTMLButtonElement>(null);
 
     const routes = {
-        emailOTP: '/worker-email-otp/index.html',
-        profile: '/worker-create-profile/index.html',
-        dashboard: '/worker-dashboard/index.html',
-        passwordOTP: '/worker-password-reset-otp/index.html'
+        emailOTP: '/worker-email-otp/',
+        profile: '/worker-create-profile/',
+        dashboard: '/worker-dashboard/',
+        passwordOTP: '/worker-password-reset-otp/'
     };
 
     const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
