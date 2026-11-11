@@ -7,6 +7,7 @@ import contactRoutes from './routes/contact.js';
 import servicesRoutes from './routes/services.js';
 import workerAuthenticationRoutes from './routes/worker-authentication.js';
 import workerEmailOTPRoutes from './routes/worker-email-otp.js';
+import workerPasswordResetOTPRoutes from './routes/worker-password-reset-otp.js';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/worker-authentication', workerAuthenticationRoutes);
 app.use('/api/worker-email-otp', workerEmailOTPRoutes);
+app.use('/api/worker-password-reset-otp', workerPasswordResetOTPRoutes);
 
 const PORT = process.env.PORT || 5000;
 

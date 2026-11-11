@@ -1,0 +1,431 @@
+/* =========================================================
+   WORKER PASSWORD RESET OTP
+========================================================= */
+
+.otp-page {
+    width: 90%;
+    max-width: 1200px;
+    min-height: calc(100vh - 70px);
+    margin: auto;
+    padding: 110px 0 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.otp-page::before {
+    content: "";
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    background: #15803d;
+    filter: blur(170px);
+    opacity: .15;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.otp-section {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.otp-card {
+    width: 100%;
+    max-width: 460px;
+    padding: 35px;
+    border-radius: 24px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 25px 70px rgba(0,0,0,.45);
+}
+
+/* HEADER */
+
+.otp-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.otp-badge {
+    display: inline-block;
+    padding: 8px 18px;
+    margin-bottom: 18px;
+    border-radius: 30px;
+    color: #15803d;
+    background: rgba(21,128,61,.15);
+    border: 1px solid rgba(21,128,61,.3);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.otp-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    line-height: 1.25;
+}
+
+.otp-header p {
+    color: #cbd5e1;
+    font-size: 15px;
+}
+
+.worker-email {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 12px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: rgba(59,130,246,.10);
+    border: 1px solid rgba(59,130,246,.20);
+    color: #93c5fd !important;
+    font-size: 14px !important;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* OTP INPUTS */
+
+#otpForm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.otp-box {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0 25px;
+}
+
+.otp-input {
+    width: 55px;
+    height: 60px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: #111827;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    transition: .3s;
+}
+
+.otp-input:focus {
+    border-color: #15803d;
+    box-shadow: 0 0 0 3px rgba(21,128,61,.15);
+}
+
+.otp-input:not(:placeholder-shown) {
+    border-color: rgba(21,128,61,.35);
+}
+
+/* VERIFY BUTTON */
+
+.submit-btn {
+    width: 100%;
+    min-height: 52px;
+    border: none;
+    border-radius: 14px;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+    background: #15803d;
+    transition: .3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.1);
+}
+
+.submit-btn:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* LOADING */
+
+.loading-spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* RESEND */
+
+.resend {
+    text-align: center;
+    margin-top: 25px;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.resend a {
+    color: #3b82f6;
+    font-weight: 600;
+    transition: .3s;
+}
+
+.resend a:hover {
+    color: #15803d;
+}
+
+.resend a.disabled {
+    pointer-events: none;
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.countdown {
+    margin-top: 10px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* NOTIFICATION MODAL */
+
+.message-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.message-modal.show {
+    display: flex;
+    animation: fadeIn .2s ease;
+}
+
+.message-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    backdrop-filter: blur(5px);
+}
+
+.message-modal-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 20px;
+    text-align: center;
+    background: #0f172a;
+    box-shadow: 0 25px 80px rgba(0,0,0,.45);
+    animation: scaleIn .2s ease;
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    color: #94a3b8;
+    background: rgba(255,255,255,.06);
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+.modal-icon {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 16px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: #15803d;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.message-modal.error .modal-icon {
+    background: #dc2626;
+}
+
+.message-modal.success .modal-icon {
+    background: #15803d;
+}
+
+.message-modal-content h2 {
+    margin-bottom: 8px;
+    color: #f8fafc;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.message-modal-content p {
+    margin-bottom: 10px;
+    color: #94a3b8;
+    font-size: .85rem;
+    line-height: 1.6;
+}
+
+.modal-cooldown-countdown {
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+.modal-button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    background: #15803d;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .3s;
+}
+
+.modal-button:hover {
+    filter: brightness(1.1);
+}
+
+/* ANIMATIONS */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(.85);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* TABLET */
+
+@media (min-width: 768px) {
+    .otp-page {
+        width: 85%;
+    }
+
+    .otp-card {
+        padding: 40px;
+    }
+
+    .otp-header h1 {
+        font-size: 38px;
+    }
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+    .otp-page {
+        width: 92%;
+        padding-top: 95px;
+        padding-bottom: 50px;
+    }
+
+    .otp-card {
+        padding: 25px 20px;
+        border-radius: 22px;
+    }
+
+    .otp-header h1 {
+        font-size: 28px;
+    }
+
+    .otp-header p {
+        font-size: 14px;
+    }
+
+    .worker-email {
+        font-size: 13px !important;
+    }
+
+    .otp-box {
+        gap: 7px;
+    }
+
+    .otp-input {
+        width: 46px;
+        height: 54px;
+        font-size: 21px;
+        border-radius: 12px;
+    }
+
+    .message-modal-content {
+        padding: 25px 20px;
+    }
+}
+
+/* SMALL MOBILE */
+
+@media (max-width: 400px) {
+    .otp-card {
+        padding: 22px 16px;
+    }
+
+    .otp-header h1 {
+        font-size: 25px;
+    }
+
+    .otp-box {
+        gap: 5px;
+    }
+
+    .otp-input {
+        width: 42px;
+        height: 50px;
+        font-size: 19px;
+    }
+
+    .message-modal-content {
+        padding: 28px 18px;
+    }
+}
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}

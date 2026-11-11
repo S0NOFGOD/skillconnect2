@@ -6,6 +6,7 @@ import Contact from './contact';
 import Services from './services';
 import WorkerAuthentication from './worker-authentication';
 import WorkerEmailOTP from './worker-email-otp';
+import WorkerPasswordResetOTP from './worker-password-reset-otp';
 
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
@@ -16,6 +17,7 @@ function App() {
         case '/services': return <Services />;
         case '/worker-authentication': return <WorkerAuthentication />;
         case '/worker-email-otp': return <WorkerEmailOTP />;
+        case '/worker-password-reset-otp': return <WorkerPasswordResetOTP />;
         default: return <Homepage />;
     }
 }

@@ -290,11 +290,12 @@ export const forgotPassword: RequestHandler = async (req, res) => {
         await prisma.worker.update({
             where: { id: worker.id },
             data: {
-                passwordResetOtpHash: hash(otp),
+                passwordResetOtpHash: await bcrypt.hash(otp, 12),
                 passwordResetOtpExpires: new Date(Date.now() + OTP_EXPIRY),
                 passwordResetOtpResendCount: status.count + 1,
                 passwordResetOtpCooldownUntil: status.cooldownUntil,
-                passwordResetOtpVerified: false
+                passwordResetOtpVerified: false,
+                resetAuthorizationExpires: null
             }
         });
 

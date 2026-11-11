@@ -444,7 +444,7 @@ function WorkerAuthentication() {
                                 onChange={e => setResetEmail(e.target.value)}/>
                         </div>
                         <button type="submit" className="modal-button" disabled={!!busy}>
-                            {busy === 'forgot' ? 'Connecting…' : 'Verify Email'}
+                            {busy === 'forgot' ? 'Verifying…' : 'Verify Email'}
                         </button>
                     </form>
                 </div>
