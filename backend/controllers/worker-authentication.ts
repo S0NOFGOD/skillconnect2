@@ -132,8 +132,10 @@ export const signupWorker: RequestHandler = async (req, res) => {
                 accountType: 'password',
                 emailVerified: false,
                 profileCompleted: false,
-                emailOtpHash: hash(otp),
-                emailOtpExpires: new Date(Date.now() + OTP_EXPIRY)
+                emailOtpHash: await bcrypt.hash(otp, 12),
+                emailOtpExpires: new Date(Date.now() + OTP_EXPIRY),
+                emailOtpResendCount: 1,
+                emailOtpCooldownUntil: null
             }
         });
 
@@ -204,7 +206,7 @@ export const loginWorker: RequestHandler = async (req, res) => {
             await prisma.worker.update({
                 where: { id: worker.id },
                 data: {
-                    emailOtpHash: hash(otp),
+                    emailOtpHash: await bcrypt.hash(otp, 12),
                     emailOtpExpires: new Date(Date.now() + OTP_EXPIRY),
                     emailOtpResendCount: status.count + 1,
                     emailOtpCooldownUntil: status.cooldownUntil

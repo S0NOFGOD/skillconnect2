@@ -10,6 +10,12 @@ interface Notice {
     callback?: () => void;
 }
 
+interface APIResponse {
+    success?: boolean;
+    message?: string;
+    coolDownUntil?: string;
+}
+
 function WorkerEmailOTP() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [workerEmail, setWorkerEmail] = useState('');
@@ -20,20 +26,18 @@ function WorkerEmailOTP() {
     const [countdown, setCountdown] = useState(60);
     const [invalid, setInvalid] = useState(false);
     const [cooldownMessage, setCooldownMessage] = useState('');
+    const [cooldownActive, setCooldownActive] = useState(false);
+
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
     const menuToggleRef = useRef<HTMLButtonElement>(null);
     const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
     const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
     const notificationCallback = useRef<(() => void) | undefined>(undefined);
+
     const authenticationPage = '/worker-authentication/';
     const profilePage = '/worker-create-profile/';
 
-    const showNotification = (
-        type: 'success' | 'error',
-        title: string,
-        message: string,
-        callback?: () => void
-    ) => {
+    const showNotification = (type: 'success' | 'error', title: string, message: string, callback?: () => void) => {
         notificationCallback.current = callback;
         setNotice({ type, title, message });
     };
@@ -48,14 +52,12 @@ function WorkerEmailOTP() {
     const stopTimers = () => {
         if (countdownTimer.current) clearInterval(countdownTimer.current);
         if (cooldownTimer.current) clearInterval(cooldownTimer.current);
-        countdownTimer.current = null;
-        cooldownTimer.current = null;
+        countdownTimer.current = cooldownTimer.current = null;
     };
 
     const startCountdown = () => {
         if (countdownTimer.current) clearInterval(countdownTimer.current);
         setCountdown(60);
-
         countdownTimer.current = setInterval(() => {
             setCountdown(previous => {
                 if (previous <= 1) {
@@ -72,38 +74,42 @@ function WorkerEmailOTP() {
         if (cooldownTimer.current) clearInterval(cooldownTimer.current);
         const endTime = new Date(until).getTime();
 
+        if (!Number.isFinite(endTime)) {
+            showNotification('error', 'Resend Limit Reached', 'You have reached the maximum resend attempts. Please try again later.');
+            return;
+        }
+
+        setCooldownActive(true);
+
         const update = () => {
             const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
             const hours = Math.floor(remaining / 3600);
             const minutes = Math.floor((remaining % 3600) / 60);
             const seconds = remaining % 60;
 
-            setCooldownMessage(
-                remaining > 0
-                    ? `You have reached the maximum resend attempts. Please try again in ${hours}h ${minutes}m ${seconds}s.`
-                    : 'Your cooldown has ended. You can request a new OTP.'
-            );
+            setCooldownMessage(remaining > 0
+                ? `You have reached the maximum resend attempts. Please try again in ${hours}h ${minutes}m ${seconds}s.`
+                : 'Your cooldown has ended. You can request a new OTP.');
 
-            if (remaining <= 0 && cooldownTimer.current) {
-                clearInterval(cooldownTimer.current);
+            if (remaining <= 0) {
+                setCooldownActive(false);
+                if (cooldownTimer.current) clearInterval(cooldownTimer.current);
                 cooldownTimer.current = null;
             }
         };
 
-        showNotification('error', 'Resend Limit Reached', '');
         update();
+        showNotification('error', 'Resend Limit Reached', '');
         cooldownTimer.current = setInterval(update, 1000);
     };
 
     useEffect(() => {
         const email = sessionStorage.getItem('workerEmail');
+
         if (!email) {
-            showNotification(
-                'error',
-                'Session Expired',
-                'Your verification session has expired. Please return to the authentication page.',
-                () => { window.location.href = authenticationPage; }
-            );
+            showNotification('error', 'Session Expired', 'Your verification session has expired. Please return to the authentication page.', () => {
+                window.location.href = authenticationPage;
+            });
         } else {
             setWorkerEmail(email);
             startCountdown();
@@ -150,9 +156,7 @@ function WorkerEmailOTP() {
     };
 
     const handleOTPKeyDown = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
-        if (event.key === 'Backspace' && !otp[index] && index > 0) {
-            inputRefs.current[index - 1]?.focus();
-        }
+        if (event.key === 'Backspace' && !otp[index] && index > 0) inputRefs.current[index - 1]?.focus();
         if (event.key === 'ArrowLeft' && index > 0) inputRefs.current[index - 1]?.focus();
         if (event.key === 'ArrowRight' && index < 5) inputRefs.current[index + 1]?.focus();
     };
@@ -161,7 +165,6 @@ function WorkerEmailOTP() {
         event.preventDefault();
         const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
         if (!pasted) return;
-
         setOtp(Array.from({ length: 6 }, (_, i) => pasted[i] || ''));
         setInvalid(false);
         inputRefs.current[Math.min(pasted.length, 6) - 1]?.focus();
@@ -189,26 +192,24 @@ function WorkerEmailOTP() {
         setVerifying(true);
 
         try {
-            const response = await API_REQUEST('/api/auth/worker/verify', {
+            const response = await API_REQUEST('/api/worker-email-otp/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: workerEmail, otp: code })
             });
 
-            const data = await response.json();
+            const data: APIResponse = await response.json();
 
             if (!response.ok || !data.success) {
-                clearOTP();
-                showNotification('error', 'Verification Failed', data.message || 'The verification code could not be verified.');
+                showNotification('error', 'Verification Failed', data.message || 'The verification code could not be verified.', response.status === 404 ? () => {
+                    window.location.href = authenticationPage;
+                } : undefined);
                 return;
             }
 
-            showNotification(
-                'success',
-                'Email Verified',
-                data.message || 'Your email has been successfully verified.',
-                () => { window.location.href = profilePage; }
-            );
+            showNotification('success', 'Email Verified', data.message || 'Your email has been successfully verified.', () => {
+                window.location.href = profilePage;
+            });
         } catch (error) {
             console.error('Email OTP verification error:', error);
             showNotification('error', 'Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
@@ -218,25 +219,25 @@ function WorkerEmailOTP() {
     };
 
     const handleResend = async () => {
-        if (resending || countdown > 0 || !workerEmail) {
-            if (!workerEmail) {
-                showNotification('error', 'Session Expired', 'Your verification session has expired.', () => {
-                    window.location.href = authenticationPage;
-                });
-            }
+        if (resending || countdown > 0 || cooldownActive) return;
+
+        if (!workerEmail) {
+            showNotification('error', 'Session Expired', 'Your verification session has expired.', () => {
+                window.location.href = authenticationPage;
+            });
             return;
         }
 
         setResending(true);
 
         try {
-            const response = await API_REQUEST('/api/auth/worker/resend', {
+            const response = await API_REQUEST('/api/worker-email-otp/resend', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: workerEmail })
             });
 
-            const data = await response.json();
+            const data: APIResponse = await response.json();
 
             if (!response.ok || !data.success) {
                 if (response.status === 429 && data.coolDownUntil) {
@@ -244,22 +245,14 @@ function WorkerEmailOTP() {
                     return;
                 }
 
-                showNotification(
-                    'error',
-                    'Unable to Resend OTP',
-                    data.message || 'We could not send a new verification code.',
-                    response.status === 404 ? () => { window.location.href = authenticationPage; } : undefined
-                );
+                showNotification('error', 'Unable to Resend OTP', data.message || 'We could not send a new verification code.', response.status === 404 ? () => {
+                    window.location.href = authenticationPage;
+                } : undefined);
                 return;
             }
 
             clearOTP();
-            showNotification(
-                'success',
-                'OTP Sent',
-                data.message || 'A new verification code has been sent to your email.',
-                startCountdown
-            );
+            showNotification('success', 'OTP Sent', data.message || 'A new verification code has been sent to your email.', startCountdown);
         } catch (error) {
             console.error('Resend OTP error:', error);
             showNotification('error', 'Connection Error', 'Unable to connect to the server. Please try again.');
@@ -273,50 +266,27 @@ function WorkerEmailOTP() {
             <header className="header">
                 <nav className="navbar" aria-label="Main navigation">
                     <a href="/" className="logo">SKILLCONNECT</a>
-
                     <div className="nav-links">
                         <a href="/home/">Home</a>
                         <a href="/about/">About us</a>
                         <a href="/contact/">Contact us</a>
                         <a href="/services/">Find a worker</a>
                     </div>
-
-                    <button
-                        ref={menuToggleRef}
-                        type="button"
-                        className="menu-toggle"
-                        onClick={openSidebar}
-                        aria-label="Open navigation menu"
-                        aria-expanded={sidebarOpen}
-                        aria-controls="otpMobileSidebar"
-                    >
-                        <span />
-                        <span />
-                        <span />
+                    <button ref={menuToggleRef} type="button" className="menu-toggle" onClick={openSidebar} aria-label="Open navigation menu" aria-expanded={sidebarOpen} aria-controls="otpMobileSidebar">
+                        <span /><span /><span />
                     </button>
                 </nav>
             </header>
 
-            <div
-                className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`}
-                onClick={closeSidebar}
-                aria-hidden="true"
-            />
+            <div className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`} onClick={closeSidebar} aria-hidden="true" />
 
-            <aside
-                className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`}
-                id="otpMobileSidebar"
-                aria-label="Mobile navigation"
-                aria-hidden={!sidebarOpen}
-                inert={!sidebarOpen}
-            >
+            <aside className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`} id="otpMobileSidebar" aria-label="Mobile navigation" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
                 <div className="sidebar-header">
                     <span className="sidebar-title">Menu</span>
                     <button type="button" className="sidebar-close" onClick={closeSidebar} aria-label="Close navigation menu">×</button>
                 </div>
-
                 <nav className="sidebar-links">
-                    <a href="/home/">Home</a>
+                    <a href="/home/" onClick={closeSidebar}>Home</a>
                     <a href="/about/" onClick={closeSidebar}>About us</a>
                     <a href="/contact/" onClick={closeSidebar}>Contact us</a>
                     <a href="/services/" onClick={closeSidebar}>Find a worker</a>
@@ -331,9 +301,7 @@ function WorkerEmailOTP() {
                             <h1>Verify Your Email</h1>
                             <p>Enter the 6-digit verification code sent to:</p>
                             <p className="worker-email">{workerEmail || 'Loading email...'}</p>
-                            <p className="spam-notice">
-                                Didn't receive the email? Check your <strong>Spam or Junk folder</strong>.
-                            </p>
+                            <p className="spam-notice">Didn't receive the email? Check your <strong>Spam or Junk folder</strong>.</p>
                         </div>
 
                         <form onSubmit={handleVerify} noValidate>
@@ -358,24 +326,19 @@ function WorkerEmailOTP() {
                             </div>
 
                             <button type="submit" className="submit-btn" disabled={verifying}>
-                                {verifying ? <><span className="loading-spinner" /> Verifying...</> : 'Verify Email'}
+                                {verifying ? <><span className="loading-spinner" /> Verifying...</> : 'Verify OTP'}
                             </button>
                         </form>
 
                         <p className="resend">
                             Didn't receive the code?{' '}
-                            <button
-                                type="button"
-                                className={countdown > 0 || resending ? 'disabled' : ''}
-                                onClick={handleResend}
-                                disabled={countdown > 0 || resending}
-                            >
+                            <button type="button" className={countdown > 0 || resending || cooldownActive ? 'disabled' : ''} onClick={handleResend} disabled={countdown > 0 || resending || cooldownActive}>
                                 {resending ? 'Resending...' : 'Resend OTP'}
                             </button>
                         </p>
 
                         <p className="countdown">
-                            {countdown > 0 ? `Resend available in ${countdown}s` : 'You can request a new OTP.'}
+                            {cooldownActive ? cooldownMessage : countdown > 0 ? `Resend available in ${countdown}s` : 'You can request a new OTP.'}
                         </p>
                     </div>
                 </section>
@@ -388,14 +351,10 @@ function WorkerEmailOTP() {
             {notice && (
                 <div className="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle">
                     <div className="notification-card">
-                        <div className={`notification-icon ${notice.type}`}>
-                            {notice.type === 'success' ? '✓' : '!'}
-                        </div>
+                        <div className={`notification-icon ${notice.type}`}>{notice.type === 'success' ? '✓' : '!'}</div>
                         <h2 id="notificationTitle">{notice.title}</h2>
                         <p>{notice.message || cooldownMessage}</p>
-                        <button type="button" className="notification-close-button" onClick={closeNotification}>
-                            Continue
-                        </button>
+                        <button type="button" className="notification-close-button" onClick={closeNotification}>Continue</button>
                     </div>
                 </div>
             )}
