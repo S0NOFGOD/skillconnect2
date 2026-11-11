@@ -262,10 +262,10 @@ function WorkerPasswordResetOTP() {
                 <nav className="navbar" aria-label="Main navigation">
                     <a href="/" className="logo">SKILLCONNECT</a>
                     <div className="nav-links">
+                        <a href="/home/">Home</a>
                         <a href="/about/">About us</a>
                         <a href="/contact/">Contact us</a>
                         <a href="/services/">Find a worker</a>
-                        <a href="/worker-authentication/">Become a worker</a>
                     </div>
                     <button ref={menuToggleRef} type="button" className="menu-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open navigation menu" aria-expanded={sidebarOpen} aria-controls="mobileSidebar">
                         <span></span><span></span><span></span>
@@ -281,10 +281,10 @@ function WorkerPasswordResetOTP() {
                     <button type="button" className="sidebar-close" onClick={closeSidebar} aria-label="Close navigation menu">×</button>
                 </div>
                 <nav className="sidebar-links">
+                    <a href="/home/">Home</a>
                     <a href="/about/" onClick={closeSidebar}>About us</a>
                     <a href="/contact/" onClick={closeSidebar}>Contact us</a>
                     <a href="/services/" onClick={closeSidebar}>Find a worker</a>
-                    <a href="/worker-authentication/" onClick={closeSidebar}>Become a worker</a>
                 </nav>
             </aside>
 
