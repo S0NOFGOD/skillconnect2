@@ -5,11 +5,11 @@ import './style.css';
 type NoticeType = 'success' | 'error' | 'info';
 interface Notice { type: NoticeType; title: string; message: string }
 
-const CREATE_PROFILE_ENDPOINT = '/api/worker/create-profile';
-const AUTHENTICATION_REDIRECT = '../worker-authentication/index.html';
-const SERVICES_REDIRECT = '../worker-services/index.html';
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ENDPOINT = '/api/worker/create-profile';
+const AUTH = '../worker-authentication/index.html';
+const SERVICES = '../worker-services/index.html';
+const MAX_SIZE = 10 * 1024 * 1024;
+const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function WorkerCreateProfile() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,15 +26,9 @@ function WorkerCreateProfile() {
     const [progress, setProgress] = useState(0);
 
     const menuToggleRef = useRef<HTMLButtonElement>(null);
-    const photoInputRef = useRef<HTMLInputElement>(null);
     const notificationButtonRef = useRef<HTMLButtonElement>(null);
     const modalCallback = useRef<(() => void) | null>(null);
     const photoUrlRef = useRef('');
-
-    function closeSidebar() {
-        setSidebarOpen(false);
-        menuToggleRef.current?.focus();
-    }
 
     function showNotification(type: NoticeType, title: string, message: string, callback: (() => void) | null = null) {
         modalCallback.current = callback;
@@ -48,28 +42,29 @@ function WorkerCreateProfile() {
         callback?.();
     }
 
+    function closeSidebar() {
+        setSidebarOpen(false);
+        menuToggleRef.current?.focus();
+    }
+
     useEffect(() => {
         if (!sidebarOpen) return;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') closeSidebar();
-        };
-        document.addEventListener('keydown', handleKeyDown);
+        const handleKey = (e: KeyboardEvent) => e.key === 'Escape' && closeSidebar();
+        document.addEventListener('keydown', handleKey);
         document.body.style.overflow = 'hidden';
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keydown', handleKey);
             document.body.style.overflow = '';
         };
     }, [sidebarOpen]);
 
     useEffect(() => {
         if (!notice) return;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') closeNotification();
-        };
-        document.addEventListener('keydown', handleKeyDown);
+        const handleKey = (e: KeyboardEvent) => e.key === 'Escape' && closeNotification();
+        document.addEventListener('keydown', handleKey);
         document.body.classList.add('modal-open');
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keydown', handleKey);
             document.body.classList.remove('modal-open');
         };
     }, [notice]);
@@ -78,44 +73,55 @@ function WorkerCreateProfile() {
         if (notice) notificationButtonRef.current?.focus();
     }, [notice]);
 
+    // INITIALIZE EMAIL
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const googleEmail = params.get('email');
 
         if (googleEmail?.trim()) {
             const email = googleEmail.trim().toLowerCase();
+
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 sessionStorage.removeItem('workerEmail');
-                showNotification('error', 'Invalid Registration', 'The email address received from Google is invalid.', () => window.location.href = AUTHENTICATION_REDIRECT);
+                showNotification('error', 'Invalid Registration', 'The email address received from Google is invalid.', () => window.location.href = AUTH);
                 return;
             }
+
             sessionStorage.setItem('workerEmail', email);
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (!sessionStorage.getItem('workerEmail')?.trim()) {
-            showNotification('error', 'Registration Session Missing', 'Your registration session could not be found. Please register or log in again.', () => window.location.href = AUTHENTICATION_REDIRECT);
+            showNotification('error', 'Registration Session Missing', 'Your registration session could not be found. Please register or log in again.', () => window.location.href = AUTH);
             return;
         }
+
         setInitialized(true);
     }, []);
+
+    // AUTHENTICATION EXPIRY
 
     useEffect(() => {
         function handleSessionExpired() {
             setCreating(false);
-            if (!notice) showNotification('error', 'Authentication Required', 'Your session has expired. Please log in again.', () => window.location.href = AUTHENTICATION_REDIRECT);
+            if (!notice) showNotification('error', 'Authentication Required', 'Your session has expired. Please log in again.', () => window.location.href = AUTH);
         }
+
         window.addEventListener('authSessionExpired', handleSessionExpired);
         return () => window.removeEventListener('authSessionExpired', handleSessionExpired);
     }, [notice]);
 
+    // PROFILE PHOTO
+
     function validatePhoto(file: File | null) {
         if (!file) return 'Please upload your profile photo.';
-        if (!ALLOWED_TYPES.includes(file.type)) return 'Profile photo must be a JPG, PNG, or WebP image.';
-        if (file.size > MAX_PHOTO_SIZE) return 'Profile photo must not exceed 10 MB.';
+        if (!TYPES.includes(file.type)) return 'Profile photo must be a JPG, PNG, or WebP image.';
+        if (file.size > MAX_SIZE) return 'Profile photo must not exceed 10 MB.';
         return '';
     }
 
-    function updatePhoto(event: ChangeEvent<HTMLInputElement>) {
-        const file = event.target.files?.[0] || null;
+    function updatePhoto(e: ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0] || null;
+
         if (!file) {
             setPhoto(null);
             setPhotoPreview('');
@@ -123,8 +129,9 @@ function WorkerCreateProfile() {
         }
 
         const error = validatePhoto(file);
+
         if (error) {
-            event.target.value = '';
+            e.target.value = '';
             setPhoto(null);
             setPhotoPreview('');
             showNotification('error', 'Invalid Profile Photo', error);
@@ -141,19 +148,25 @@ function WorkerCreateProfile() {
         if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
     }, []);
 
+    // FORM PROGRESS
+
     useEffect(() => {
         const fields = [photo, fullName.trim(), phone.trim(), latitude.trim(), longitude.trim()];
         setProgress(Math.round(fields.filter(Boolean).length / fields.length * 100));
     }, [photo, fullName, phone, latitude, longitude]);
 
+    // LOCATION
+
     function getWorkerLocation() {
         if (gettingLocation) return;
+
         if (!navigator.geolocation) {
             showNotification('error', 'Location Unavailable', 'Your browser does not support location services.');
             return;
         }
 
         setGettingLocation(true);
+
         navigator.geolocation.getCurrentPosition(
             position => {
                 setLatitude(position.coords.latitude.toFixed(7));
@@ -173,14 +186,16 @@ function WorkerCreateProfile() {
         );
     }
 
+    // FRONTEND VALIDATION
+
     function validateForm(): string {
         const photoError = validatePhoto(photo);
         if (photoError) return photoError;
 
-        const nameParts = fullName.trim().replace(/\s+/g, ' ').split(' ');
+        const names = fullName.trim().replace(/\s+/g, ' ').split(' ');
         const namePattern = /^[A-Za-zÀ-ÿ]+(?:[-'][A-Za-zÀ-ÿ]+)*$/;
 
-        if (nameParts.length !== 2 || !namePattern.test(nameParts[0]) || !namePattern.test(nameParts[1])) {
+        if (names.length !== 2 || !namePattern.test(names[0]) || !namePattern.test(names[1])) {
             return 'Please enter exactly two names with a space between them, for example: Destiny Okpone.';
         }
 
@@ -189,30 +204,45 @@ function WorkerCreateProfile() {
             return 'Please enter a valid Nigerian phone number.';
         }
 
-        const lat = Number(latitude), lng = Number(longitude);
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+
         if (!latitude.trim() || !longitude.trim()) return 'Please get your location before creating your profile.';
         if (!Number.isFinite(lat) || lat < -90 || lat > 90) return 'Your latitude is invalid. Please get your location again.';
         if (!Number.isFinite(lng) || lng < -180 || lng > 180) return 'Your longitude is invalid. Please get your location again.';
+
         return '';
     }
 
-    async function createWorkerProfile(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    // CREATE PROFILE
+
+    async function createWorkerProfile(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
         if (creating) return;
 
-        const validationError = validateForm();
-        if (validationError) {
-            showNotification('error', 'Invalid Profile Information', validationError);
+        const error = validateForm();
+
+        if (error) {
+            showNotification('error', 'Invalid Profile Information', error);
             return;
         }
 
-        const email = sessionStorage.getItem('workerEmail');
-        if (!email?.trim()) {
-            showNotification('error', 'Authentication Required', 'Your registration session could not be found. Please register or log in again.', () => window.location.href = AUTHENTICATION_REDIRECT);
-            return;
-        }
+        // CHANGE BUTTON FIRST
 
         setCreating(true);
+
+        // GET WORKER EMAIL
+
+        const email = sessionStorage.getItem('workerEmail');
+
+        if (!email?.trim()) {
+            setCreating(false);
+            showNotification('error', 'Authentication Required', 'Your registration session could not be found. Please register or log in again.', () => window.location.href = AUTH);
+            return;
+        }
+
+        // SEND PROFILE TO BACKEND
+
         try {
             const formData = new FormData();
             formData.append('email', email);
@@ -222,19 +252,33 @@ function WorkerCreateProfile() {
             formData.append('latitude', latitude.trim());
             formData.append('longitude', longitude.trim());
 
-            const response = await API_REQUEST(CREATE_PROFILE_ENDPOINT, { method: 'POST', body: formData });
+            const response = await API_REQUEST(ENDPOINT, {
+                method: 'POST',
+                body: formData
+            });
+
             let data: { message?: string; code?: string };
+
             try {
                 data = await response.json();
             } catch {
                 data = { message: 'Something went wrong. Please try again.' };
             }
 
+            // EMAIL NOT VERIFIED / AUTHENTICATION ERROR
+
             if (response.status === 401 || data.code === 'EMAIL_NOT_VERIFIED') {
                 setCreating(false);
-                showNotification('error', data.code === 'EMAIL_NOT_VERIFIED' ? 'Email Verification Required' : 'Authentication Required', data.message || 'Please verify your email address before completing your profile.', () => window.location.href = AUTHENTICATION_REDIRECT);
+                showNotification(
+                    'error',
+                    data.code === 'EMAIL_NOT_VERIFIED' ? 'Email Verification Required' : 'Authentication Required',
+                    data.message || 'Please verify your email address before completing your profile.',
+                    () => window.location.href = AUTH
+                );
                 return;
             }
+
+            // BACKEND VALIDATION ERROR
 
             if (!response.ok) {
                 setCreating(false);
@@ -242,9 +286,18 @@ function WorkerCreateProfile() {
                 return;
             }
 
+            // SUCCESS
+
             sessionStorage.removeItem('workerEmail');
             setCreating(false);
-            showNotification('success', 'Profile Created Successfully', data.message || 'Your worker profile has been completed successfully.', () => window.location.href = SERVICES_REDIRECT);
+
+            showNotification(
+                'success',
+                'Profile Created Successfully',
+                data.message || 'Your worker profile has been completed successfully.',
+                () => window.location.href = SERVICES
+            );
+
         } catch (error) {
             console.error('Create worker profile request failed:', error);
             setCreating(false);
@@ -274,6 +327,7 @@ function WorkerCreateProfile() {
             </header>
 
             <div className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`} onClick={closeSidebar} aria-hidden="true" />
+
             <aside className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`} id="mobileSidebar" aria-label="Mobile navigation" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
                 <div className="sidebar-header">
                     <span className="sidebar-title">Menu</span>
@@ -317,7 +371,7 @@ function WorkerCreateProfile() {
                                                 {photoPreview && <img src={photoPreview} alt="Profile photo preview" />}
                                             </div>
                                         </label>
-                                        <input ref={photoInputRef} type="file" id="profilePhoto" name="profilePhoto" className="profile-photo-input" accept="image/jpeg,image/png,image/webp" onChange={updatePhoto} />
+                                        <input type="file" id="profilePhoto" name="profilePhoto" className="profile-photo-input" accept="image/jpeg,image/png,image/webp" onChange={updatePhoto} />
                                     </div>
                                     <small className="profile-photo-help">JPG, PNG, or WebP. Maximum file size: 10 MB.</small>
                                 </div>
@@ -329,11 +383,11 @@ function WorkerCreateProfile() {
                                     </div>
                                     <div className="form-group">
                                         <label htmlFor="fullName">Full Name</label>
-                                        <input type="text" id="fullName" placeholder="Enter your first and last name" autoComplete="name" value={fullName} onChange={event => setFullName(event.target.value)} required />
+                                        <input type="text" id="fullName" placeholder="Enter your first and last name" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} required />
                                     </div>
                                     <div className="form-group">
                                         <label htmlFor="phone">Phone Number</label>
-                                        <input type="tel" id="phone" placeholder="Enter your phone number" autoComplete="tel" value={phone} onChange={event => setPhone(event.target.value)} required />
+                                        <input type="tel" id="phone" placeholder="Enter your phone number" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} required />
                                     </div>
                                 </div>
 

@@ -24,6 +24,7 @@ model Worker {
   profileCompleted             Boolean   @default(false)
 
   fullName                     String?
+  phone                        String?
   latitude                     Float?
   longitude                    Float?
   profilePhoto                 String?
