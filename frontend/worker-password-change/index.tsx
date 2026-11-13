@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { API_REQUEST } from '../config';
 import './style.css';
 
 // ==========================
@@ -102,7 +103,9 @@ function WorkerPasswordChange() {
     // PASSWORD VALIDATION
     // ==========================
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>
+    ) {
         event.preventDefault();
 
         if (!password.trim()) {
@@ -141,11 +144,25 @@ function WorkerPasswordChange() {
             return;
         }
 
+        if (!workerEmail) {
+            showModal(
+                'error',
+                'Reset Session Required',
+                'Your password reset session is missing or expired. Please restart the password reset process.',
+                true
+            );
+            return;
+        }
+
+        // ==========================
+        // SEND PASSWORD CHANGE REQUEST
+        // ==========================
+
         setLoading(true);
 
         try {
-            const response = await fetch(
-                API_ENDPOINT('/api/worker-password-change'),
+            const response = await API_REQUEST(
+                '/api/worker-password-change',
                 {
                     method: 'POST',
                     headers: {
@@ -167,6 +184,10 @@ function WorkerPasswordChange() {
                 data = {};
             }
 
+            // ==========================
+            // BACKEND VALIDATION ERRORS
+            // ==========================
+
             if (!response.ok) {
                 setLoading(false);
 
@@ -180,6 +201,7 @@ function WorkerPasswordChange() {
                         data.message,
                         true
                     );
+
                     return;
                 }
 
@@ -192,6 +214,10 @@ function WorkerPasswordChange() {
 
                 return;
             }
+
+            // ==========================
+            // PASSWORD CHANGE SUCCESSFUL
+            // ==========================
 
             sessionStorage.removeItem('workerEmail');
 
@@ -284,7 +310,7 @@ function WorkerPasswordChange() {
                 </div>
 
                 <nav className="sidebar-links">
-                    <a href="/home/">Home</a>
+                    <a href="/home/" onClick={closeSidebar}>Home</a>
                     <a href="/about/" onClick={closeSidebar}>About us</a>
                     <a href="/contact/" onClick={closeSidebar}>Contact us</a>
                     <a href="/services/" onClick={closeSidebar}>Find a worker</a>
