@@ -28,8 +28,7 @@ function EmailField({ id, value, onChange }: EmailFieldProps) {
     return (
         <div className="form-group">
             <label htmlFor={id}>Email Address</label>
-            <input id={id} type="email" autoComplete="email"
-                placeholder="Enter your email" value={value} onChange={onChange}/>
+            <input id={id} type="email" autoComplete="email" placeholder="Enter your email" value={value} onChange={onChange}/>
         </div>
     );
 }
@@ -39,12 +38,8 @@ function PasswordField({ id, label, value, onChange, placeholder, autoComplete, 
         <div className="form-group">
             <label htmlFor={id}>{label}</label>
             <div className="password-wrapper">
-                <input id={id} type={visible ? 'text' : 'password'}
-                    autoComplete={autoComplete} placeholder={placeholder}
-                    value={value} onChange={onChange}/>
-                <button type="button" className="password-toggle" onClick={onToggle}>
-                    {visible ? 'Hide' : 'Show'}
-                </button>
+                <input id={id} type={visible ? 'text' : 'password'} autoComplete={autoComplete} placeholder={placeholder} value={value} onChange={onChange}/>
+                <button type="button" className="password-toggle" onClick={onToggle}>{visible ? 'Hide' : 'Show'}</button>
             </div>
         </div>
     );
@@ -80,8 +75,7 @@ function WorkerAuthentication() {
 
     const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     const saveEmail = (email: string) => sessionStorage.setItem('workerEmail', email);
-    const show = (title: string, message: string, action?: () => void, cooldown = false) =>
-        setNotice({ title, message, action, cooldown });
+    const show = (title: string, message: string, action?: () => void, cooldown = false) => setNotice({ title, message, action, cooldown });
     const toggle = (id: string) => setVisible(previous => ({ ...previous, [id]: !previous[id] }));
 
     const closeSidebar = () => {
@@ -128,9 +122,7 @@ function WorkerAuthentication() {
         return {
             ...data,
             success: data.success === true && response.ok,
-            message: data.message || (response.ok
-                ? 'Request completed successfully.'
-                : 'Something went wrong. Please try again.')
+            message: data.message || (response.ok ? 'Request completed successfully.' : 'Something went wrong. Please try again.')
         };
     }
 
@@ -222,7 +214,10 @@ function WorkerAuthentication() {
         try {
             const data = await post('/api/worker-authentication/forgot-password', { email });
 
-            if (!data.success) return requestError(data, 'Unable to process your password reset request.');
+            if (!data.success) {
+                if (data.cooldownUntil) setForgotOpen(false);
+                return requestError(data, 'Unable to process your password reset request.');
+            }
 
             saveEmail(data.email || email);
             setForgotOpen(false);
@@ -267,14 +262,12 @@ function WorkerAuthentication() {
         <header className="header">
             <nav className="navbar" aria-label="Main navigation">
                 <a href="/" className="logo">SKILLCONNECT</a>
-
                 <div className="nav-links">
                     <a href="/home/">Home</a>
                     <a href="/about/">About us</a>
                     <a href="/contact/">Contact us</a>
                     <a href="/services/">Find a worker</a>
                 </div>
-
                 <button ref={menuRef} type="button" className="menu-toggle"
                     onClick={() => setSidebarOpen(true)} aria-label="Open navigation menu"
                     aria-expanded={sidebarOpen} aria-controls="mobileSidebar">
@@ -294,7 +287,6 @@ function WorkerAuthentication() {
                 <button type="button" className="sidebar-close"
                     onClick={closeSidebar} aria-label="Close navigation menu">×</button>
             </div>
-
             <nav className="sidebar-links">
                 {['Home', 'About us', 'Contact us', 'Find a worker'].map((name, i) =>
                     <a key={name} href={['/home/', '/about/', '/contact/', '/services/'][i]}
@@ -310,7 +302,6 @@ function WorkerAuthentication() {
                 <p className="hero-description">
                     Connect with nearby clients, showcase your skills and grow your service business.
                 </p>
-
                 <div className="benefits">
                     <div className="benefit-card">
                         <div className="benefit-icon">✓</div>
@@ -319,7 +310,6 @@ function WorkerAuthentication() {
                             <p>Connect with people looking for your skills.</p>
                         </div>
                     </div>
-
                     <div className="benefit-card">
                         <div className="benefit-icon">✓</div>
                         <div>
@@ -351,22 +341,18 @@ function WorkerAuthentication() {
                         <form className="auth-form active" onSubmit={submitLogin} noValidate>
                             <EmailField id="loginEmail" value={login.email}
                                 onChange={e => setLogin({ ...login, email: e.target.value })}/>
-
                             <PasswordField id="loginPassword" label="Password"
                                 value={login.password} placeholder="Enter your password"
                                 autoComplete="current-password" visible={!!visible.loginPassword}
                                 onToggle={() => toggle('loginPassword')}
                                 onChange={e => setLogin({ ...login, password: e.target.value })}/>
-
                             <button type="button" className="forgot-password" onClick={() => {
                                 setResetEmail(login.email);
                                 setForgotOpen(true);
                             }}>Forgot Password?</button>
-
                             <button type="submit" className="auth-button" disabled={!!busy}>
                                 {busy === 'login' ? 'Logging in…' : 'Login'}
                             </button>
-
                             <div className="auth-divider"><span>OR</span></div>
                             <GoogleButton busy={busy} onClick={googleAuth}/>
                         </form>
@@ -374,29 +360,24 @@ function WorkerAuthentication() {
                         <form className="auth-form active" onSubmit={submitSignup} noValidate>
                             <EmailField id="signupEmail" value={signup.email}
                                 onChange={e => setSignup({ ...signup, email: e.target.value })}/>
-
                             <PasswordField id="signupPassword" label="Password"
                                 value={signup.password} placeholder="Minimum 8 characters"
                                 autoComplete="new-password" visible={!!visible.signupPassword}
                                 onToggle={() => toggle('signupPassword')}
                                 onChange={e => setSignup({ ...signup, password: e.target.value })}/>
-
                             <PasswordField id="confirmPassword" label="Confirm Password"
                                 value={signup.confirmPassword} placeholder="Confirm your password"
                                 autoComplete="new-password" visible={!!visible.confirmPassword}
                                 onToggle={() => toggle('confirmPassword')}
                                 onChange={e => setSignup({ ...signup, confirmPassword: e.target.value })}/>
-
                             <label className="terms-label">
                                 <input type="checkbox" checked={signup.terms}
                                     onChange={e => setSignup({ ...signup, terms: e.target.checked })}/>
                                 <span>I agree to the <a href="/about/">Terms and Privacy Policy</a></span>
                             </label>
-
                             <button type="submit" className="auth-button" disabled={!!busy}>
                                 {busy === 'signup' ? 'Creating…' : 'Create Account'}
                             </button>
-
                             <div className="auth-divider"><span>OR</span></div>
                             <GoogleButton busy={busy} onClick={googleAuth}/>
                         </form>
@@ -436,7 +417,6 @@ function WorkerAuthentication() {
                     <div className="modal-icon">?</div>
                     <h3 id="forgotTitle">Forgot Password?</h3>
                     <p>Enter your email address to verify your account.</p>
-
                     <form onSubmit={submitForgot} noValidate>
                         <div className="form-group">
                             <input type="email" placeholder="Enter your email"
