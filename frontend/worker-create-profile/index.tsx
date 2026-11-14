@@ -6,8 +6,8 @@ type NoticeType = 'success' | 'error' | 'info';
 interface Notice { type: NoticeType; title: string; message: string }
 
 const ENDPOINT = '/api/worker/create-profile';
-const AUTH = '../worker-authentication/index.html';
-const SERVICES = '../worker-services/index.html';
+const AUTH = '/worker-authentication';
+const SERVICES = '/worker-services';
 const MAX_SIZE = 10 * 1024 * 1024;
 const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 

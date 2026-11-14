@@ -69,7 +69,7 @@ function WorkerAuthentication() {
     const routes = {
         emailOTP: '/worker-email-otp/',
         profile: '/worker-create-profile/',
-        dashboard: '/worker-dashboard/',
+        dashboard: '/worker-services/',
         passwordOTP: '/worker-password-reset-otp/'
     };
 
