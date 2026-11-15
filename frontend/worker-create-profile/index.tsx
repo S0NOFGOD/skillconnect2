@@ -9,7 +9,7 @@ const ENDPOINT = '/api/worker/create-profile';
 const AUTH = '/worker-authentication';
 const SERVICES = '/worker-services';
 const MAX_SIZE = 10 * 1024 * 1024;
-const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function WorkerCreateProfile() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -112,21 +112,32 @@ function WorkerCreateProfile() {
 
     // PROFILE PHOTO
 
+    function validateImageIntegrity(file: File): Promise<boolean> {
+        return new Promise(resolve => {
+            const image = new Image();
+            const url = URL.createObjectURL(file);
+
+            function finish(valid: boolean) {
+                URL.revokeObjectURL(url);
+                resolve(valid);
+            }
+
+            image.onload = () => finish(!!image.naturalWidth && !!image.naturalHeight);
+            image.onerror = () => finish(false);
+            image.src = url;
+        });
+    }
+
     function validatePhoto(file: File | null) {
         if (!file) return 'Please upload your profile photo.';
-        if (!TYPES.includes(file.type)) return 'Profile photo must be a JPG, PNG, or WebP image.';
+        if (!TYPES.has(file.type)) return 'Profile photo must be a JPG, PNG, or WebP image.';
         if (file.size > MAX_SIZE) return 'Profile photo must not exceed 10 MB.';
         return '';
     }
 
     function updatePhoto(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0] || null;
-
-        if (!file) {
-            setPhoto(null);
-            setPhotoPreview('');
-            return;
-        }
+        if (!file) return;
 
         const error = validatePhoto(file);
 
@@ -134,6 +145,8 @@ function WorkerCreateProfile() {
             e.target.value = '';
             setPhoto(null);
             setPhotoPreview('');
+            if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+            photoUrlRef.current = '';
             showNotification('error', 'Invalid Profile Photo', error);
             return;
         }
@@ -188,9 +201,12 @@ function WorkerCreateProfile() {
 
     // FRONTEND VALIDATION
 
-    function validateForm(): string {
+    async function validateForm(): Promise<string> {
         const photoError = validatePhoto(photo);
         if (photoError) return photoError;
+
+        if (!await validateImageIntegrity(photo!))
+            return 'Profile photo is corrupted or cannot be opened. Please select another image and try again.';
 
         const names = fullName.trim().replace(/\s+/g, ' ').split(' ');
         const namePattern = /^[A-Za-zÀ-ÿ]+(?:[-'][A-Za-zÀ-ÿ]+)*$/;
@@ -220,18 +236,14 @@ function WorkerCreateProfile() {
         e.preventDefault();
         if (creating) return;
 
-        const error = validateForm();
+        const error = await validateForm();
 
         if (error) {
             showNotification('error', 'Invalid Profile Information', error);
             return;
         }
 
-        // CHANGE BUTTON FIRST
-
         setCreating(true);
-
-        // GET WORKER EMAIL
 
         const email = sessionStorage.getItem('workerEmail');
 
@@ -240,8 +252,6 @@ function WorkerCreateProfile() {
             showNotification('error', 'Authentication Required', 'Your registration session could not be found. Please register or log in again.', () => window.location.href = AUTH);
             return;
         }
-
-        // SEND PROFILE TO BACKEND
 
         try {
             const formData = new FormData();
@@ -252,10 +262,7 @@ function WorkerCreateProfile() {
             formData.append('latitude', latitude.trim());
             formData.append('longitude', longitude.trim());
 
-            const response = await API_REQUEST(ENDPOINT, {
-                method: 'POST',
-                body: formData
-            });
+            const response = await API_REQUEST(ENDPOINT, { method: 'POST', body: formData });
 
             let data: { message?: string; code?: string };
 
@@ -265,20 +272,11 @@ function WorkerCreateProfile() {
                 data = { message: 'Something went wrong. Please try again.' };
             }
 
-            // EMAIL NOT VERIFIED / AUTHENTICATION ERROR
-
             if (response.status === 401 || data.code === 'EMAIL_NOT_VERIFIED') {
                 setCreating(false);
-                showNotification(
-                    'error',
-                    data.code === 'EMAIL_NOT_VERIFIED' ? 'Email Verification Required' : 'Authentication Required',
-                    data.message || 'Please verify your email address before completing your profile.',
-                    () => window.location.href = AUTH
-                );
+                showNotification('error', data.code === 'EMAIL_NOT_VERIFIED' ? 'Email Verification Required' : 'Authentication Required', data.message || 'Please verify your email address before completing your profile.', () => window.location.href = AUTH);
                 return;
             }
-
-            // BACKEND VALIDATION ERROR
 
             if (!response.ok) {
                 setCreating(false);
@@ -286,17 +284,10 @@ function WorkerCreateProfile() {
                 return;
             }
 
-            // SUCCESS
-
             sessionStorage.removeItem('workerEmail');
             setCreating(false);
 
-            showNotification(
-                'success',
-                'Profile Created Successfully',
-                data.message || 'Your worker profile has been completed successfully.',
-                () => window.location.href = SERVICES
-            );
+            showNotification('success', 'Profile Created Successfully', data.message || 'Your worker profile has been completed successfully.', () => window.location.href = SERVICES);
 
         } catch (error) {
             console.error('Create worker profile request failed:', error);
