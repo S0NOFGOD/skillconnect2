@@ -143,6 +143,15 @@ export const createWorkerProfile: RequestHandler = (req, res, next) => {
         return;
       }
 
+      if (worker.profileCompleted) {
+        res.status(409).json({
+          success: false,
+          code: 'PROFILE_ALREADY_COMPLETED',
+          message: 'Your worker profile has already been created. Please log in to edit your profile.',
+        });
+        return;
+      }
+
       const existingPhone = await prisma.worker.findFirst({ where: { phone } });
 
       if (existingPhone) {

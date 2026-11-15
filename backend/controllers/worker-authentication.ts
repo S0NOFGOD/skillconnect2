@@ -80,6 +80,59 @@ const setAuthCookies = (res: Response, tokens: { accessToken: string; refreshTok
     res.cookie('refreshToken', tokens.refreshToken, options);
 };
 
+/* WORKER ACCESS-TOKEN AUTHENTICATION */
+
+export const authenticateWorker: RequestHandler = async (req, res, next) => {
+    try {
+        const accessToken = req.cookies?.accessToken;
+        const accessSecret = process.env.ACCESS_TOKEN_SECRET;
+
+        if (!accessSecret)
+            return res.status(500).json({
+                success: false,
+                message: 'Authentication is not configured.'
+            });
+
+        if (!accessToken)
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required.'
+            });
+
+        const decoded = jwt.verify(accessToken, accessSecret);
+
+        if (
+            typeof decoded === 'string' ||
+            decoded.userType !== 'worker' ||
+            typeof decoded.id !== 'string'
+        ) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid authentication token.'
+            });
+        }
+
+        const worker = await prisma.worker.findUnique({
+            where: { id: decoded.id },
+            select: { id: true }
+        });
+
+        if (!worker)
+            return res.status(401).json({
+                success: false,
+                message: 'Worker account not found.'
+            });
+
+        res.locals.workerId = worker.id;
+        next();
+    } catch {
+        return res.status(401).json({
+            success: false,
+            message: 'Your session is invalid or has expired. Please log in again.'
+        });
+    }
+};
+
 const redirectWithError = (res: Response, error: string) =>
     res.redirect(`${redirect('/worker-authentication/index.html')}?error=${encodeURIComponent(error)}`);
 
