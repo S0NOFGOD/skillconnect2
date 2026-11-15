@@ -10,6 +10,7 @@ import WorkerPasswordResetOTP from './worker-password-reset-otp';
 import WorkerPasswordChange from './worker-password-change';
 import WorkerCreateProfile from './worker-create-profile';
 import WorkerServices from './worker-services';
+import WorkerDashboard from './worker-dashboard';
 
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
@@ -24,6 +25,7 @@ function App() {
         case '/worker-password-change': return <WorkerPasswordChange />;
         case '/worker-create-profile': return <WorkerCreateProfile />;
         case '/worker-services': return <WorkerServices />;
+        case '/worker-dashboard': return <WorkerDashboard />;
         default: return <Homepage />;
     }
 }
