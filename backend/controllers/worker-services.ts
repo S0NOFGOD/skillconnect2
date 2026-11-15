@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { v2 as cloudinary } from 'cloudinary';
 import { authenticateWorker } from './worker-authentication.js';
 
 const prisma = new PrismaClient();
@@ -12,28 +13,49 @@ export const getWorkerServices: RequestHandler[] = [
         try {
             const workerId = res.locals.workerId as string;
 
-            const services = await prisma.service.findMany({
-                where: { workerId },
+            const worker = await prisma.worker.findUnique({
+                where: { id: workerId },
                 select: {
-                    id: true,
-                    skill: true,
-                    createdAt: true,
-                    adminApproval: true
-                },
-                orderBy: {
-                    createdAt: 'desc'
+                    profilePhoto: true,
+                    services: {
+                        select: {
+                            id: true,
+                            skill: true,
+                            createdAt: true,
+                            adminApproval: true
+                        },
+                        orderBy: {
+                            createdAt: 'desc'
+                        }
+                    }
                 }
             });
 
+            if (!worker) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Worker account not found.'
+                });
+            }
+
+            const profilePhoto = worker.profilePhoto
+                ? cloudinary.url(worker.profilePhoto, {
+                    secure: true,
+                    cloud_name: process.env.CLOUDINARY_CLOUD_NAME
+                })
+                : null;
+
             return res.json({
                 success: true,
-                services: services.map(service => ({
+                profilePhoto,
+                services: worker.services.map(service => ({
                     id: service.id,
                     skill: service.skill,
                     date: service.createdAt,
                     adminApproval: service.adminApproval
                 }))
             });
+
         } catch (error) {
             console.error('Get worker services error:', error);
 

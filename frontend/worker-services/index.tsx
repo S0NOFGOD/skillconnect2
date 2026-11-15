@@ -19,6 +19,7 @@ interface Notification {
 }
 
 interface ServicesResponse {
+    profilePhoto?: string | null;
     services?: WorkerService[] | null;
     message?: string;
 }
@@ -29,6 +30,7 @@ const LOGOUT_ENDPOINT = '/api/auth/logout';
 function WorkerServices() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [services, setServices] = useState<WorkerService[]>([]);
+    const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
     const [servicesLoading, setServicesLoading] = useState(true);
     const [logoutLoading, setLogoutLoading] = useState(false);
     const [notification, setNotification] = useState<Notification | null>(null);
@@ -107,6 +109,8 @@ function WorkerServices() {
                 );
                 return;
             }
+
+            setProfilePhoto(data.profilePhoto || null);
 
             const loadedServices = Array.isArray(data.services)
                 ? [...data.services]
@@ -327,12 +331,26 @@ function WorkerServices() {
 
                 <div className="sidebar-profile">
                     <div className="profile-photo-wrapper">
-                        <div
-                            className="profile-photo-placeholder"
-                            aria-hidden="true"
-                        >
-                            👤
-                        </div>
+                        {profilePhoto ? (
+                            <img
+                                src={profilePhoto}
+                                alt="Worker profile"
+                                className="profile-photo"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    borderRadius: '50%'
+                                }}
+                            />
+                        ) : (
+                            <div
+                                className="profile-photo-placeholder"
+                                aria-hidden="true"
+                            >
+                                👤
+                            </div>
+                        )}
                     </div>
                 </div>
 
