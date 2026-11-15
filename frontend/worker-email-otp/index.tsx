@@ -13,7 +13,7 @@ interface Notice {
 interface APIResponse {
     success?: boolean;
     message?: string;
-    coolDownUntil?: string;
+    cooldownUntil?: string;
 }
 
 function WorkerEmailOTP() {
@@ -240,8 +240,8 @@ function WorkerEmailOTP() {
             const data: APIResponse = await response.json();
 
             if (!response.ok || !data.success) {
-                if (response.status === 429 && data.coolDownUntil) {
-                    startCooldown(data.coolDownUntil);
+                if (response.status === 429 && data.cooldownUntil) {
+                    startCooldown(data.cooldownUntil);
                     return;
                 }
 
@@ -326,7 +326,7 @@ function WorkerEmailOTP() {
                             </div>
 
                             <button type="submit" className="submit-btn" disabled={verifying}>
-                                {verifying ? <><span className="loading-spinner" /> Verifying...</> : 'Verify OTP'}
+                                {verifying ? 'Verifying...' : 'Verify OTP'}
                             </button>
                         </form>
 
@@ -349,11 +349,11 @@ function WorkerEmailOTP() {
             </footer>
 
             {notice && (
-                <div className="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle">
+                <div className="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle" aria-describedby="notificationMessage">
                     <div className="notification-card">
                         <div className={`notification-icon ${notice.type}`}>{notice.type === 'success' ? '✓' : '!'}</div>
                         <h2 id="notificationTitle">{notice.title}</h2>
-                        <p>{notice.message || cooldownMessage}</p>
+                        <p id="notificationMessage">{notice.message || cooldownMessage}</p>
                         <button type="button" className="notification-close-button" onClick={closeNotification}>Continue</button>
                     </div>
                 </div>
