@@ -380,7 +380,7 @@ function WorkerDashboard() {
                         <h1>Welcome, <span>{firstName}</span></h1>
                         <p className="page-description">Verify your profile to connect with nearby clients.</p>
                     </div>
-                    <button type="button" className={`verification-button ${verified ? 'verified' : ''}`} onClick={confirmVerification} disabled={dashboardLoading || otpSending || verified}>
+                    <button type="button" className={`verification-action-btn ${verified ? 'verified' : ''}`} onClick={confirmVerification} disabled={dashboardLoading || otpSending}>
                         {verificationLabel}
                     </button>
                 </section>

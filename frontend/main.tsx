@@ -9,6 +9,7 @@ import WorkerEmailOTP from './worker-email-otp';
 import WorkerPasswordResetOTP from './worker-password-reset-otp';
 import WorkerPasswordChange from './worker-password-change';
 import WorkerCreateProfile from './worker-create-profile';
+import WorkerCreateService from './worker-create-service';
 import WorkerServices from './worker-services';
 import WorkerDashboard from './worker-dashboard';
 
@@ -24,6 +25,7 @@ function App() {
         case '/worker-password-reset-otp': return <WorkerPasswordResetOTP />;
         case '/worker-password-change': return <WorkerPasswordChange />;
         case '/worker-create-profile': return <WorkerCreateProfile />;
+        case '/worker-create-service': return <WorkerCreateService />;
         case '/worker-services': return <WorkerServices />;
         case '/worker-dashboard': return <WorkerDashboard />;
         default: return <Homepage />;
