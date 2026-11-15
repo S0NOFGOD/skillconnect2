@@ -28,6 +28,7 @@ model Worker {
   latitude                     Float?
   longitude                    Float?
   profilePhoto                 String?
+  profileVerificationExpires   DateTime?
 
   emailOtpHash                 String?
   emailOtpExpires              DateTime?
@@ -52,8 +53,15 @@ model Service {
   id            String   @id @default(cuid())
   workerId      String
   skill         String
-  adminApproval String   @default("pending")
+  experience    String
+  description   String
+  portfolio     String[]
+  date          DateTime @default(now())
+  adminApproval String   @default("Under Review")
+  adminResponse String   @default("It may take up to 24 hours for admin update")
+
   worker        Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

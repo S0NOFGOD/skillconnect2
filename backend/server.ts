@@ -12,6 +12,7 @@ import workerPasswordResetOTPRoutes from './routes/worker-password-reset-otp.js'
 import workerCreateProfileRoutes from './routes/worker-create-profile.js';
 import workerPasswordChangeRoutes from './routes/worker-password-change.js';
 import workerServicesRoutes from './routes/worker-services.js';
+import workerCreateServiceRoutes from './routes/worker-create-service.js';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/worker-password-reset-otp', workerPasswordResetOTPRoutes);
 app.use('/api/worker/create-profile', workerCreateProfileRoutes);
 app.use('/api/worker-password-change', workerPasswordChangeRoutes);
 app.use('/api/worker/services', workerServicesRoutes);
+app.use('/api/worker/create-service', workerCreateServiceRoutes);
 
 const PORT = process.env.PORT || 5000;
 
