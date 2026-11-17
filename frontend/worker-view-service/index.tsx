@@ -14,6 +14,7 @@ type Notification = {
     title: string; message: string; type: 'success' | 'error' | 'info';
     action?: () => void; loading?: boolean;
 };
+type ValidationResult = { valid: boolean; message?: string };
 
 const ENDPOINT = '/api/worker/view-service';
 const SERVICES = '../worker-services/', AUTH = '../worker-authentication/', REVIEWS = '../client-view-ratings/';
@@ -75,10 +76,13 @@ function WorkerViewService() {
     const validateImage = (file: File): Promise<boolean> => new Promise(resolve => {
         const url = URL.createObjectURL(file), image = new Image();
         const finish = (valid: boolean) => { URL.revokeObjectURL(url); resolve(valid); };
-        image.onload = () => finish(image.naturalWidth > 0 && image.naturalHeight > 0);
+        image.onload = () => finish(!!image.naturalWidth && !!image.naturalHeight);
         image.onerror = () => finish(false);
         image.src = url;
     });
+
+    const formatNumbers = (numbers: number[]) =>
+        numbers.length > 1 ? `${numbers.slice(0, -1).join(', ')} and ${numbers.at(-1)}` : `${numbers[0]}`;
 
     useEffect(() => {
         let active = true;
@@ -147,15 +151,6 @@ function WorkerViewService() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const invalid = (message: string) => {
-            event.target.value = '';
-            showModal('Invalid Image', message, 'error');
-        };
-
-        if (!IMAGE_TYPES.has(file.type)) return invalid(`Portfolio ${index + 1} must be a JPG, PNG or WebP image.`);
-        if (file.size > MAX_SIZE) return invalid(`Portfolio ${index + 1} exceeds 10 MB.`);
-        if (!await validateImage(file)) return invalid(`Portfolio ${index + 1} is corrupted or cannot be read.`);
-
         const url = URL.createObjectURL(file), previous = previewsRef.current[index];
         if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
         previewsRef.current[index] = url;
@@ -164,34 +159,64 @@ function WorkerViewService() {
         event.target.value = '';
     }
 
-    function validateService() {
-        if (!SKILLS.includes(skill)) return 'Please select a valid skill.';
-        if (!EXPERIENCES.includes(experience)) return 'Please select a valid experience level.';
-        if (!description.trim()) return 'Please describe the service you provide.';
-        if (wordCount(description) > MAX_WORDS) return 'Your description must not exceed 150 words.';
-        return null;
+    async function validatePortfolioPhotos(): Promise<ValidationResult> {
+        const decodeErrors: number[] = [], formatErrors: number[] = [], sizeErrors: number[] = [];
+
+        await Promise.all(photos.map(async (file, index) => {
+            if (!file) return;
+            const number = index + 1;
+            if (!IMAGE_TYPES.has(file.type)) formatErrors.push(number);
+            if (file.size > MAX_SIZE) sizeErrors.push(number);
+            if (!await validateImage(file)) decodeErrors.push(number);
+        }));
+
+        const errors: string[] = [];
+
+        if (decodeErrors.length)
+            errors.push(`Image decode error: please change portfolio ${formatNumbers(decodeErrors)}, and try again.`);
+        if (formatErrors.length)
+            errors.push(`Image format error: please change portfolio ${formatNumbers(formatErrors)}, and try again. JPG, PNG or WebP only.`);
+        if (sizeErrors.length)
+            errors.push(`Image size error: please change portfolio ${formatNumbers(sizeErrors)}, and try again. 10 MB max.`);
+
+        return errors.length ? { valid: false, message: errors.join('\n\n') } : { valid: true };
+    }
+
+    async function validateServiceForm(): Promise<ValidationResult> {
+        const portfolioValidation = await validatePortfolioPhotos();
+        if (!portfolioValidation.valid) return portfolioValidation;
+
+        if (!SKILLS.includes(skill)) return { valid: false, message: 'Please select a valid skill.' };
+        if (!EXPERIENCES.includes(experience)) return { valid: false, message: 'Please select a valid experience level.' };
+        if (!description.trim()) return { valid: false, message: 'Please describe the service you provide.' };
+        if (wordCount(description) > MAX_WORDS) return { valid: false, message: 'Your description must not exceed 150 words.' };
+
+        return { valid: true };
     }
 
     async function updateService(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (updating) return;
 
-        const error = validateService();
-        if (error) return showModal('Validation Error', error, 'error');
-
-        const serviceId = sessionStorage.getItem('serviceId');
-        if (!serviceId) return showModal('Service Not Found', 'The service ID could not be found. Please return to your services.', 'error', goToServices);
-
-        setUpdating(true);
-
         try {
-            for (let i = 0; i < MAX_IMAGES; i++) {
-                const file = photos[i];
-                if (!file) continue;
-                if (!IMAGE_TYPES.has(file.type)) throw new Error(`Portfolio ${i + 1} must be a JPG, PNG or WebP image.`);
-                if (file.size > MAX_SIZE) throw new Error(`Portfolio ${i + 1} exceeds 10 MB.`);
-                if (!await validateImage(file)) throw new Error(`Portfolio ${i + 1} is corrupted or cannot be read.`);
+            const validation = await validateServiceForm();
+
+            if (!validation.valid) {
+                showModal(
+                    validation.message?.includes('Image ') ? 'Portfolio Error' : 'Validation Error',
+                    validation.message!,
+                    'error'
+                );
+                return;
             }
+
+            const serviceId = sessionStorage.getItem('serviceId');
+            if (!serviceId) {
+                showModal('Service Not Found', 'The service ID could not be found. Please return to your services.', 'error', goToServices);
+                return;
+            }
+
+            setUpdating(true);
 
             const formData = new FormData();
             formData.append('serviceId', serviceId);
