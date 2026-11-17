@@ -11,6 +11,7 @@ import WorkerPasswordChange from './worker-password-change';
 import WorkerCreateProfile from './worker-create-profile';
 import WorkerCreateService from './worker-create-service';
 import WorkerServices from './worker-services';
+import WorkerViewService from './worker-view-service';
 import WorkerDashboard from './worker-dashboard';
 
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -27,6 +28,7 @@ function App() {
         case '/worker-create-profile': return <WorkerCreateProfile />;
         case '/worker-create-service': return <WorkerCreateService />;
         case '/worker-services': return <WorkerServices />;
+        case '/worker-view-service': return <WorkerViewService />;
         case '/worker-dashboard': return <WorkerDashboard />;
         default: return <Homepage />;
     }
