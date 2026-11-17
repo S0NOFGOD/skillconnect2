@@ -13,6 +13,7 @@ import workerCreateProfileRoutes from './routes/worker-create-profile.js';
 import workerPasswordChangeRoutes from './routes/worker-password-change.js';
 import workerServicesRoutes from './routes/worker-services.js';
 import workerCreateServiceRoutes from './routes/worker-create-service.js';
+import workerViewServiceRoutes from './routes/worker-view-service.js';
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/worker/create-profile', workerCreateProfileRoutes);
 app.use('/api/worker-password-change', workerPasswordChangeRoutes);
 app.use('/api/worker/services', workerServicesRoutes);
 app.use('/api/worker/create-service', workerCreateServiceRoutes);
+app.use('/api/worker/view-service', workerViewServiceRoutes);
 
 const PORT = process.env.PORT || 5000;
 

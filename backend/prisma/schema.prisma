@@ -50,20 +50,21 @@ model Worker {
 }
 
 model Service {
-  id            String   @id @default(cuid())
-  workerId      String
-  skill         String
-  experience    String
-  description   String
-  portfolio     String[]
-  date          DateTime @default(now())
-  adminApproval String   @default("Under Review")
-  adminResponse String   @default("It may take up to 24 hours for admin update")
+  id              String   @id @default(cuid())
+  workerId        String
+  skill           String
+  experience      String
+  description     String
+  portfolio       String[]
+  ratingAndReview Json?
+  date            DateTime @default(now())
+  adminApproval   String   @default("Under Review")
+  adminResponse   String   @default("It may take up to 24 hours for admin update")
 
-  worker        Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  worker          Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([workerId])
   @@index([adminApproval])

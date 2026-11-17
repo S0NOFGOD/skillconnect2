@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FormEvent, ChangeEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { API_REQUEST } from '../config';
 import './style.css';
 
@@ -16,33 +16,29 @@ type Notification = {
 };
 
 const ENDPOINT = '/api/worker/view-service';
-const SERVICES = '../worker-services/';
-const AUTH = '../worker-authentication/';
-const REVIEWS = '../client-view-ratings/';
+const SERVICES = '../worker-services/', AUTH = '../worker-authentication/', REVIEWS = '../client-view-ratings/';
 const MAX_IMAGES = 3, MAX_SIZE = 10 * 1024 * 1024, MAX_WORDS = 150;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const SKILLS = [
     'Swimming Instructor', 'Barber', 'Hairdresser', 'Makeup Artist', 'Tailor',
-    'Fashion Designer', 'Plumber', 'Electrician', 'Painter', 'Welder',
-    'Carpenter', 'Bricklayer', 'Cleaner', 'Laundry Service', 'Mechanic',
-    'Auto Electrician', 'Phone Repair', 'Computer Repair', 'Graphic Designer',
-    'Web Developer', 'Photographer', 'Videographer', 'Caterer', 'Baker',
-    'Cook', 'Event Planner', 'Interior Decorator', 'AC Technician',
-    'Generator Repair', 'POP Installer', 'Tiler', 'Furniture Maker', 'Driver',
-    'Tutor', 'Fitness Trainer', 'Other'
+    'Fashion Designer', 'Plumber', 'Electrician', 'Painter', 'Welder', 'Carpenter',
+    'Bricklayer', 'Cleaner', 'Laundry Service', 'Mechanic', 'Auto Electrician',
+    'Phone Repair', 'Computer Repair', 'Graphic Designer', 'Web Developer',
+    'Photographer', 'Videographer', 'Caterer', 'Baker', 'Cook', 'Event Planner',
+    'Interior Decorator', 'AC Technician', 'Generator Repair', 'POP Installer',
+    'Tiler', 'Furniture Maker', 'Driver', 'Tutor', 'Fitness Trainer', 'Other'
 ];
 const EXPERIENCES = ['Less than 1 year', '1 year', '2 years', '3 years', '4 years', '5 years+'];
 const wordCount = (value: string) => value.trim() ? value.trim().split(/\s+/).length : 0;
 const redirect = (path: string) => window.location.href = path;
 
 function WorkerViewService() {
-    const serviceId = useRef(sessionStorage.getItem('serviceId') || '').current;
     const [skill, setSkill] = useState('');
     const [experience, setExperience] = useState('');
     const [description, setDescription] = useState('');
     const [photos, setPhotos] = useState<(File | null)[]>([null, null, null]);
     const [previews, setPreviews] = useState<(string | null)[]>([null, null, null]);
-    const [adminApproval, setAdminApproval] = useState('In Review');
+    const [adminApproval, setAdminApproval] = useState('Under Review');
     const [adminResponse, setAdminResponse] = useState('Your service is awaiting admin review.');
     const [reviews, setReviews] = useState<Review[]>([]);
     const [pageLoading, setPageLoading] = useState(true);
@@ -50,10 +46,8 @@ function WorkerViewService() {
     const [notification, setNotification] = useState<Notification | null>(null);
     const previewsRef = useRef<(string | null)[]>([null, null, null]);
 
-    const showModal = (
-        title: string, message: string, type: Notification['type'] = 'info',
-        action?: () => void, loading = false
-    ) => setNotification({ title, message, type, action, loading });
+    const showModal = (title: string, message: string, type: Notification['type'] = 'info', action?: () => void, loading = false) =>
+        setNotification({ title, message, type, action, loading });
 
     const closeModal = () => {
         if (notification?.loading) return;
@@ -74,8 +68,7 @@ function WorkerViewService() {
 
     const readResponse = async (response: Response) => {
         const text = await response.text();
-        if (!text) return {};
-        try { return JSON.parse(text); }
+        try { return text ? JSON.parse(text) : {}; }
         catch { throw new Error('The server returned an invalid response. Please try again.'); }
     };
 
@@ -87,63 +80,61 @@ function WorkerViewService() {
         image.src = url;
     });
 
-    async function loadService() {
-        if (!serviceId) {
-            setPageLoading(false);
-            showModal('Service Not Found', 'The service ID could not be found. Please return to your services.', 'error', goToServices);
-            return;
-        }
-
-        showModal('Connecting...', 'Please wait while we load your service.', 'info', undefined, true);
-
-        try {
-            const response = await API_REQUEST(`${ENDPOINT}/${encodeURIComponent(serviceId)}`, { method: 'GET' });
-            const data = await readResponse(response);
-
-            if (response.status === 401) return authenticationError();
-            if (!response.ok) throw new Error(data.message || 'Unable to load this service.');
-            if (!data.service) throw new Error('The server did not return service details.');
-
-            const service: Service = data.service;
-            setSkill(service.skill || '');
-            setExperience(service.experience || '');
-            setDescription(service.description || '');
-            setAdminApproval(service.adminApproval || 'In Review');
-            setAdminResponse(service.adminResponse || 'Your service is awaiting admin review.');
-            setReviews(Array.isArray(service.ratingAndReview) ? service.ratingAndReview : []);
-
-            const urls = Array.from({ length: MAX_IMAGES }, (_, i) => {
-                const item = service.portfolios?.[i];
-                return typeof item === 'string' ? item : item?.url || item?.secure_url || null;
-            });
-
-            previewsRef.current = urls;
-            setPreviews(urls);
-            setNotification(null);
-        } catch (error) {
-            showModal('Unable to Load Service', error instanceof Error ? error.message : 'Something went wrong. Please try again.', 'error');
-        } finally {
-            setPageLoading(false);
-        }
-    }
-
     useEffect(() => {
+        let active = true;
+
+        async function loadService() {
+            showModal('Connecting...', 'Please wait while we load your service.', 'info', undefined, true);
+            const serviceId = sessionStorage.getItem('serviceId');
+
+            if (!serviceId) {
+                setPageLoading(false);
+                showModal('Service Not Found', 'The service ID could not be found. Please return to your services.', 'error', goToServices);
+                return;
+            }
+
+            try {
+                const response = await API_REQUEST(`${ENDPOINT}/${encodeURIComponent(serviceId)}`);
+                if (response.status === 401) return active && authenticationError();
+
+                const data = await readResponse(response);
+                if (!response.ok) throw new Error(data.message || 'Unable to load this service.');
+                if (!data.service) throw new Error('The server did not return service details.');
+                if (!active) return;
+
+                const service: Service = data.service;
+                setSkill(service.skill || '');
+                setExperience(service.experience || '');
+                setDescription(service.description || '');
+                setAdminApproval(service.adminApproval || 'Under Review');
+                setAdminResponse(service.adminResponse || 'Your service is awaiting admin review.');
+                setReviews(Array.isArray(service.ratingAndReview) ? service.ratingAndReview : []);
+
+                const urls = Array.from({ length: MAX_IMAGES }, (_, i) => {
+                    const item = service.portfolios?.[i];
+                    return typeof item === 'string' ? item : item?.url || item?.secure_url || null;
+                });
+
+                previewsRef.current = urls;
+                setPreviews(urls);
+                setNotification(null);
+            } catch (error) {
+                if (active) showModal('Unable to Load Service', error instanceof Error ? error.message : 'Something went wrong. Please try again.', 'error');
+            } finally {
+                if (active) setPageLoading(false);
+            }
+        }
+
         loadService();
-        const handleExpired = () => authenticationError();
-        window.addEventListener('authSessionExpired', handleExpired);
         return () => {
-            window.removeEventListener('authSessionExpired', handleExpired);
-            previewsRef.current.forEach(url => {
-                if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
-            });
+            active = false;
+            previewsRef.current.forEach(url => url?.startsWith('blob:') && URL.revokeObjectURL(url));
         };
     }, []);
 
     useEffect(() => {
         if (!notification) return;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && !notification.loading) closeModal();
-        };
+        const handleKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && !notification.loading && closeModal();
         document.addEventListener('keydown', handleKeyDown);
         document.body.style.overflow = 'hidden';
         return () => {
@@ -162,21 +153,22 @@ function WorkerViewService() {
         };
 
         if (!IMAGE_TYPES.has(file.type)) return invalid(`Portfolio ${index + 1} must be a JPG, PNG or WebP image.`);
-        if (file.size > MAX_SIZE) return invalid(`Portfolio ${index + 1} exceeds 10 MB. Choose an image that is 10 MB or smaller.`);
-        if (!await validateImage(file)) return invalid(`Portfolio ${index + 1} is corrupted or cannot be read. Please select another image.`);
+        if (file.size > MAX_SIZE) return invalid(`Portfolio ${index + 1} exceeds 10 MB.`);
+        if (!await validateImage(file)) return invalid(`Portfolio ${index + 1} is corrupted or cannot be read.`);
 
-        const url = URL.createObjectURL(file);
-        if (previewsRef.current[index]?.startsWith('blob:')) URL.revokeObjectURL(previewsRef.current[index]!);
+        const url = URL.createObjectURL(file), previous = previewsRef.current[index];
+        if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
         previewsRef.current[index] = url;
         setPhotos(old => old.map((item, i) => i === index ? file : item));
         setPreviews([...previewsRef.current]);
+        event.target.value = '';
     }
 
     function validateService() {
-        if (!SKILLS.includes(skill)) return ['Skill Required', 'Please select a valid skill.'];
-        if (!EXPERIENCES.includes(experience)) return ['Experience Required', 'Please select a valid experience level.'];
-        if (!description.trim()) return ['Description Required', 'Please describe the service you provide.'];
-        if (wordCount(description) > MAX_WORDS) return ['Description Too Long', 'Your description must not exceed 150 words.'];
+        if (!SKILLS.includes(skill)) return 'Please select a valid skill.';
+        if (!EXPERIENCES.includes(experience)) return 'Please select a valid experience level.';
+        if (!description.trim()) return 'Please describe the service you provide.';
+        if (wordCount(description) > MAX_WORDS) return 'Your description must not exceed 150 words.';
         return null;
     }
 
@@ -185,8 +177,10 @@ function WorkerViewService() {
         if (updating) return;
 
         const error = validateService();
-        if (error) return showModal(error[0], error[1], 'error');
-        if (!serviceId) return showModal('Service Not Found', 'The service ID could not be found.', 'error', goToServices);
+        if (error) return showModal('Validation Error', error, 'error');
+
+        const serviceId = sessionStorage.getItem('serviceId');
+        if (!serviceId) return showModal('Service Not Found', 'The service ID could not be found. Please return to your services.', 'error', goToServices);
 
         setUpdating(true);
 
@@ -213,9 +207,9 @@ function WorkerViewService() {
             });
 
             const response = await API_REQUEST(`${ENDPOINT}/${encodeURIComponent(serviceId)}`, { method: 'PUT', body: formData });
-            const data = await readResponse(response);
-
             if (response.status === 401) return authenticationError();
+
+            const data = await readResponse(response);
             if (!response.ok) throw new Error(data.message || 'Unable to update this service.');
 
             showModal('Service Updated', data.message || 'Your service has been updated successfully.', 'success', goToServices);
@@ -228,14 +222,14 @@ function WorkerViewService() {
 
     const totalReviews = reviews.length;
     const averageRating = totalReviews ? reviews.reduce((sum, item) => sum + (Number(item.rating) || 0), 0) / totalReviews : 0;
-    const roundedRating = Math.round(averageRating);
+    const roundedRating = Math.max(0, Math.min(5, Math.round(averageRating)));
     const status = adminApproval.trim().toLowerCase();
     const statusClass = status === 'approved' ? 'status-approved' : status === 'rejected' ? 'status-rejected' : 'status-in-review';
 
     return <>
         <header className="topbar">
             <nav className="topbar-inner" aria-label="Service navigation">
-                <a href={SERVICES} className="back-navigation" aria-label="Go back to Worker Services" onClick={() => sessionStorage.removeItem('serviceId')}>
+                <a href={SERVICES} className="back-navigation" onClick={() => sessionStorage.removeItem('serviceId')}>
                     <span className="back-icon" aria-hidden="true">←</span><span>Back</span>
                 </a>
             </nav>
@@ -256,7 +250,7 @@ function WorkerViewService() {
 
                         <div className="form-group">
                             <label htmlFor="skill" className="form-label">Skill</label>
-                            <select id="skill" className="form-control" value={skill} onChange={e => setSkill(e.target.value)} required>
+                            <select id="skill" className="form-control" value={skill} onChange={e => setSkill(e.target.value)}>
                                 <option value="" disabled>Select your skill</option>
                                 {SKILLS.map(item => <option key={item}>{item}</option>)}
                             </select>
@@ -264,7 +258,7 @@ function WorkerViewService() {
 
                         <div className="form-group">
                             <label htmlFor="experience" className="form-label">Experience</label>
-                            <select id="experience" className="form-control" value={experience} onChange={e => setExperience(e.target.value)} required>
+                            <select id="experience" className="form-control" value={experience} onChange={e => setExperience(e.target.value)}>
                                 <option value="" disabled>Select your experience</option>
                                 {EXPERIENCES.map(item => <option key={item}>{item}</option>)}
                             </select>
@@ -275,7 +269,7 @@ function WorkerViewService() {
                                 <label htmlFor="description" className="form-label">Description</label>
                                 <span className={`word-counter ${wordCount(description) >= MAX_WORDS ? 'limit-reached' : ''}`}>{wordCount(description)} / 150 words</span>
                             </div>
-                            <textarea id="description" className="form-control description-input" rows={7} placeholder="Describe the service you provide..." value={description} onChange={e => setDescription(e.target.value)} required />
+                            <textarea id="description" className="form-control description-input" rows={7} placeholder="Describe the service you provide..." value={description} onChange={e => setDescription(e.target.value)} />
                         </div>
 
                         <div className="form-section-heading portfolio-heading">
@@ -309,9 +303,7 @@ function WorkerViewService() {
                         <div className="rating-average">
                             <span className="rating-average-number">{totalReviews ? averageRating.toFixed(1) : '—'}</span>
                             <div className="rating-summary-details">
-                                <div className="rating-stars" aria-label={`Average rating: ${averageRating.toFixed(1)} out of 5`}>
-                                    {'★'.repeat(roundedRating)}{'☆'.repeat(5 - roundedRating)}
-                                </div>
+                                <div className="rating-stars">{'★'.repeat(roundedRating)}{'☆'.repeat(5 - roundedRating)}</div>
                                 <p>{totalReviews ? `${totalReviews} ${totalReviews === 1 ? 'review' : 'reviews'}` : 'No reviews yet'}</p>
                             </div>
                         </div>
@@ -338,9 +330,7 @@ function WorkerViewService() {
             </>}
         </main>
 
-        <footer className="page-footer">
-            <p>© {new Date().getFullYear()} SkillConnect. All rights reserved.</p>
-        </footer>
+        <footer className="page-footer"><p>© {new Date().getFullYear()} SkillConnect. All rights reserved.</p></footer>
 
         {notification && <div className="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle" aria-describedby="notificationText" onClick={e => e.target === e.currentTarget && !notification.loading && closeModal()}>
             <div className={`notification-card ${notification.type}`}>
