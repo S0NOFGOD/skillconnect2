@@ -15,38 +15,43 @@ model Contact {
 }
 
 model Worker {
-  id                           String    @id @default(cuid())
-  email                        String    @unique
-  passwordHash                 String?
-  googleId                     String?   @unique
-  accountType                  String    @default("password")
-  emailVerified                Boolean   @default(false)
-  profileCompleted             Boolean   @default(false)
+  id                            String    @id @default(cuid())
+  email                         String    @unique
+  passwordHash                  String?
+  googleId                      String?   @unique
+  accountType                   String    @default("password")
+  emailVerified                 Boolean   @default(false)
+  profileCompleted              Boolean   @default(false)
 
-  fullName                     String?
-  phone                        String?
-  latitude                     Float?
-  longitude                    Float?
-  profilePhoto                 String?
-  profileVerificationExpires   DateTime?
+  fullName                      String?
+  phone                         String?
+  latitude                      Float?
+  longitude                     Float?
+  profilePhoto                  String?
+  profileVerificationExpires    DateTime?
 
-  emailOtpHash                 String?
-  emailOtpExpires              DateTime?
-  emailOtpResendCount          Int       @default(0)
-  emailOtpCooldownUntil        DateTime?
+  emailOtpHash                  String?
+  emailOtpExpires               DateTime?
+  emailOtpResendCount           Int       @default(0)
+  emailOtpCooldownUntil         DateTime?
 
-  passwordResetOtpHash         String?
-  passwordResetOtpExpires      DateTime?
-  passwordResetOtpResendCount  Int       @default(0)
+  phoneOtpHash                  String?
+  phoneOtpExpires               DateTime?
+  phoneOtpResendCount           Int       @default(0)
+  phoneOtpCooldownUntil         DateTime?
+
+  passwordResetOtpHash          String?
+  passwordResetOtpExpires       DateTime?
+  passwordResetOtpResendCount   Int       @default(0)
   passwordResetOtpCooldownUntil DateTime?
-  passwordResetOtpVerified     Boolean   @default(false)
-  resetAuthorizationExpires    DateTime?
+  passwordResetOtpVerified      Boolean   @default(false)
+  resetAuthorizationExpires     DateTime?
 
-  refreshTokenHash             String?
+  refreshTokenHash              String?
 
-  services                     Service[]
-  createdAt                    DateTime  @default(now())
-  updatedAt                    DateTime  @updatedAt
+  services                      Service[]
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
 }
 
 model Service {
@@ -68,4 +73,13 @@ model Service {
 
   @@index([workerId])
   @@index([adminApproval])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+
+  @@index([latitude, longitude])
 }

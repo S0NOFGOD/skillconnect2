@@ -14,15 +14,16 @@ import workerPasswordChangeRoutes from './routes/worker-password-change.js';
 import workerServicesRoutes from './routes/worker-services.js';
 import workerCreateServiceRoutes from './routes/worker-create-service.js';
 import workerViewServiceRoutes from './routes/worker-view-service.js';
+import workerDashboardRoutes from './routes/worker-dashboard.js';
 
 const app = express();
 
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://skillconnect2-six.vercel.app',
-  ],
-  credentials: true,
+    origin: [
+        'http://localhost:5173',
+        'https://skillconnect2-six.vercel.app',
+    ],
+    credentials: true,
 }));
 
 app.use(express.json());
@@ -40,9 +41,10 @@ app.use('/api/worker-password-change', workerPasswordChangeRoutes);
 app.use('/api/worker/services', workerServicesRoutes);
 app.use('/api/worker/create-service', workerCreateServiceRoutes);
 app.use('/api/worker/view-service', workerViewServiceRoutes);
+app.use('/api/worker', workerDashboardRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`SkillConnect API running on port ${PORT}`);
+    console.log(`SkillConnect API running on port ${PORT}`);
 });

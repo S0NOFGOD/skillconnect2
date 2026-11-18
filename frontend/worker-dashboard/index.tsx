@@ -13,18 +13,13 @@ interface Worker {
     profileVerificationExpires?: string | null;
 }
 
-interface DashboardResponse {
-    worker?: Worker;
-    message?: string;
-}
-
 interface Notification {
     title: string;
     message: string;
     type: 'success' | 'error' | 'info' | 'confirm';
     buttonText: string;
-    action: (() => void | Promise<void>) | null;
-    confirmation: boolean;
+    action?: (() => Promise<void>) | null;
+    confirmation?: boolean;
     buttonHidden?: boolean;
     redirect?: string | null;
 }
@@ -44,6 +39,8 @@ function WorkerDashboard() {
     const [cooldownExpiry, setCooldownExpiry] = useState<number | null>(null);
     const [currentTime, setCurrentTime] = useState(Date.now());
 
+    const busy = dashboardLoading || otpSending || logoutLoading;
+
     const showModal = useCallback((
         title: string,
         message: string,
@@ -53,20 +50,17 @@ function WorkerDashboard() {
         confirmation = false,
         redirect: string | null = null,
         buttonHidden = false
-    ) => setNotification({ title, message, type, action, buttonText, confirmation, redirect, buttonHidden }), []);
+    ) => {
+        setNotification({ title, message, type, action, buttonText, confirmation, redirect, buttonHidden });
+    }, []);
 
     function hideModal() {
-        if (dashboardLoading || otpSending || logoutLoading) return;
+        if (busy) return;
         setNotification(null);
-        setCooldownExpiry(null);
-    }
-
-    function closeSidebar() {
-        setSidebarOpen(false);
     }
 
     function navigateTo(path: string) {
-        closeSidebar();
+        setSidebarOpen(false);
         window.location.href = path;
     }
 
@@ -76,7 +70,9 @@ function WorkerDashboard() {
 
     const authenticationError = useCallback((
         message = 'Your session has expired. Please log in again.'
-    ) => showModal('Authentication Required', message, 'error', redirectToLogin), [showModal, redirectToLogin]);
+    ) => {
+        showModal('Authentication Required', message, 'error', null, 'Continue', false, '../worker-authentication/index.html');
+    }, [showModal]);
 
     const loadDashboard = useCallback(async () => {
         setDashboardLoading(true);
@@ -90,14 +86,14 @@ function WorkerDashboard() {
                 return;
             }
 
-            const data: DashboardResponse = await response.json();
+            const data = await response.json();
 
             if (!response.ok) {
                 showModal('Unable to Load Dashboard', data.message || 'Unable to load your dashboard. Please try again.', 'error');
                 return;
             }
 
-            setWorker(data.worker || data as Worker);
+            setWorker(data.worker || data);
             setNotification(null);
         } catch (error) {
             console.error('Dashboard request failed:', error);
@@ -116,77 +112,94 @@ function WorkerDashboard() {
             const data = await response.json().catch(() => ({}));
 
             if (response.status === 401) {
-                setNotification(null);
                 authenticationError();
                 return;
             }
 
             if (!response.ok) {
-                if (data.coolDownUntil) {
-                    const expiry = new Date(data.coolDownUntil).getTime();
+                const cooldown = data.phoneOtpResendAttempts?.coolDownUntil || data.coolDownUntil;
+
+                if (cooldown) {
+                    const expiry = new Date(cooldown).getTime();
 
                     if (Number.isFinite(expiry) && expiry > Date.now()) {
                         setCooldownExpiry(expiry);
-                        showModal('Verification Cooldown', data.message || 'You have reached the OTP request limit.', 'error');
-                        return;
                     }
                 }
 
-                showModal('Verification Error', data.message || 'Unable to send the verification code.', 'error');
+                showModal(
+                    data.coolDownUntil || data.phoneOtpResendAttempts?.coolDownUntil ? 'Verification Cooldown' : 'Verification Error',
+                    data.message || 'Unable to send the verification code.',
+                    'error'
+                );
                 return;
             }
 
             if (data.phone) sessionStorage.setItem('workerPhone', data.phone);
 
-            showModal('OTP Sent', data.message || 'A verification code has been sent to your phone.', 'success', null, 'Continue', false, '../worker-phone-otp/index.html');
+            showModal(
+                'OTP Sent',
+                data.message || 'A verification code has been sent to your phone.',
+                'success',
+                null,
+                'Continue',
+                false,
+                '../worker-phone-otp/index.html'
+            );
         } catch (error) {
             console.error('Phone OTP request failed:', error);
             showModal('Connection Error', 'Unable to send the verification code. Please try again.', 'error');
         } finally {
             setOtpSending(false);
         }
-    }, [otpSending, showModal, authenticationError]);
+    }, [otpSending, authenticationError, showModal]);
 
     const confirmVerification = useCallback(() => {
         if (verificationExpiry && verificationExpiry > Date.now()) return;
-        showModal('Verify Profile', 'Are you sure you want to verify your profile?', 'confirm', sendPhoneOtp, 'Yes', true);
+
+        showModal(
+            'Verify Profile',
+            'Are you sure you want to verify your profile?',
+            'confirm',
+            sendPhoneOtp,
+            'Yes',
+            true
+        );
     }, [verificationExpiry, showModal, sendPhoneOtp]);
 
-    async function logoutWorker() {
+    const logoutWorker = useCallback(async () => {
         if (logoutLoading) return;
         setLogoutLoading(true);
 
         try {
             const response = await API_REQUEST(LOGOUT_ENDPOINT, { method: 'POST' });
+            const data = await response.json().catch(() => ({}));
 
             if (response.status === 401) {
-                setNotification(null);
                 authenticationError();
                 return;
             }
-
-            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
                 showModal('Logout Failed', data.message || 'Unable to log out. Please try again.', 'error');
                 return;
             }
 
-            window.location.href = '../worker-authentication/index.html';
+            redirectToLogin();
         } catch (error) {
             console.error('Logout request failed:', error);
             showModal('Connection Error', 'Unable to log out at this time. Please try again.', 'error');
         } finally {
             setLogoutLoading(false);
         }
-    }
+    }, [logoutLoading, authenticationError, showModal, redirectToLogin]);
 
     function confirmLogout() {
         showModal('Logout', 'Are you sure you want to log out?', 'confirm', logoutWorker, 'Yes', true);
     }
 
     async function handleNotificationAction() {
-        if (!notification || dashboardLoading || otpSending || logoutLoading) return;
+        if (!notification || busy) return;
 
         if (notification.redirect) {
             window.location.href = notification.redirect;
@@ -195,13 +208,18 @@ function WorkerDashboard() {
 
         if (notification.action) {
             const action = notification.action;
-            setNotification(null);
+
+            if (notification.confirmation) {
+                setOtpSending(true);
+            }
 
             try {
                 await action();
             } catch (error) {
                 console.error('Notification action failed:', error);
                 showModal('Something Went Wrong', 'Please try again.', 'error');
+            } finally {
+                if (notification.confirmation) setOtpSending(false);
             }
 
             return;
@@ -215,11 +233,13 @@ function WorkerDashboard() {
         const days = Math.floor(seconds / 86400);
         const hours = Math.floor(seconds % 86400 / 3600);
         const minutes = Math.floor(seconds % 3600 / 60);
+
         return `${days}d ${hours}h ${minutes}m ${seconds % 60}s`;
     }
 
     function formatCooldown(expiry: number) {
         const seconds = Math.max(0, Math.ceil((expiry - currentTime) / 1000));
+
         return `${Math.floor(seconds / 3600)}h ${Math.floor(seconds % 3600 / 60)}m ${seconds % 60}s`;
     }
 
@@ -228,6 +248,7 @@ function WorkerDashboard() {
 
     useEffect(() => {
         if (!verificationExpiry && !cooldownExpiry) return;
+
         const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => window.clearInterval(timer);
     }, [verificationExpiry, cooldownExpiry]);
@@ -239,7 +260,10 @@ function WorkerDashboard() {
         }
 
         const expiry = new Date(worker.profileVerificationExpires).getTime();
-        setVerificationExpiry(Number.isFinite(expiry) && expiry > Date.now() ? expiry : null);
+
+        setVerificationExpiry(
+            Number.isFinite(expiry) && expiry > Date.now() ? expiry : null
+        );
     }, [worker?.profileVerificationExpires]);
 
     useEffect(() => {
@@ -252,11 +276,11 @@ function WorkerDashboard() {
     useEffect(() => {
         function handleSessionExpired() {
             if (dashboardLoading) return;
-            setNotification(null);
             authenticationError();
         }
 
         window.addEventListener('authSessionExpired', handleSessionExpired);
+
         return () => window.removeEventListener('authSessionExpired', handleSessionExpired);
     }, [dashboardLoading, authenticationError]);
 
@@ -269,39 +293,56 @@ function WorkerDashboard() {
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key !== 'Escape') return;
-            closeSidebar();
 
-            if (notification && !dashboardLoading && !otpSending && !logoutLoading) {
-                setNotification(null);
-            }
+            setSidebarOpen(false);
+
+            if (notification && !busy) setNotification(null);
         }
 
         document.addEventListener('keydown', handleKeyDown);
+
         if (sidebarOpen) document.body.style.overflow = 'hidden';
 
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = '';
         };
-    }, [sidebarOpen, notification, dashboardLoading, otpSending, logoutLoading]);
+    }, [sidebarOpen, notification, busy]);
 
     return (
         <>
             <header className="header">
                 <nav className="navbar" aria-label="Worker navigation">
                     <a href="../worker-dashboard/" className="logo">SKILLCONNECT</a>
-                    <button type="button" className="menu-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open navigation menu" aria-expanded={sidebarOpen} aria-controls="workerSidebar">
+
+                    <button
+                        type="button"
+                        className="menu-toggle"
+                        onClick={() => setSidebarOpen(true)}
+                        aria-label="Open navigation menu"
+                        aria-expanded={sidebarOpen}
+                        aria-controls="workerSidebar"
+                    >
                         <span></span><span></span><span></span>
                     </button>
                 </nav>
             </header>
 
-            <div className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`} onClick={closeSidebar} aria-hidden="true" />
+            <div
+                className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+                aria-hidden="true"
+            />
 
-            <aside className={`worker-sidebar ${sidebarOpen ? 'open' : ''}`} id="workerSidebar" aria-label="Worker dashboard navigation" aria-hidden={!sidebarOpen}>
+            <aside
+                className={`worker-sidebar ${sidebarOpen ? 'open' : ''}`}
+                id="workerSidebar"
+                aria-label="Worker dashboard navigation"
+                aria-hidden={!sidebarOpen}
+            >
                 <div className="sidebar-header">
                     <span className="sidebar-title">Menu</span>
-                    <button type="button" className="sidebar-close" onClick={closeSidebar} aria-label="Close navigation menu">×</button>
+                    <button type="button" className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close navigation menu">×</button>
                 </div>
 
                 <div className="sidebar-profile">
@@ -313,12 +354,14 @@ function WorkerDashboard() {
                 </div>
 
                 <nav className="sidebar-nav">
-                    <button type="button" className="nav-link active" onClick={closeSidebar} aria-current="page">
+                    <button type="button" className="nav-link active" onClick={() => setSidebarOpen(false)} aria-current="page">
                         <span className="nav-icon">🏠</span><span>Dashboard</span>
                     </button>
+
                     <button type="button" className="nav-link" onClick={() => navigateTo('../worker-services/')}>
                         <span className="nav-icon">🛠️</span><span>View Services</span>
                     </button>
+
                     <button type="button" className="nav-link" onClick={() => navigateTo('../worker-edit-profile/')}>
                         <span className="nav-icon">✏️</span><span>Edit Profile</span>
                     </button>
@@ -337,18 +380,26 @@ function WorkerDashboard() {
                         <h1>Welcome, <span>{firstName}</span></h1>
                         <p className="page-description">Verify your profile to connect with nearby clients.</p>
                     </div>
-                    <button type="button" className={`verification-action-btn ${profileIsVerified ? 'verified' : ''}`} onClick={confirmVerification} disabled={dashboardLoading || profileIsVerified}>
+
+                    <button
+                        type="button"
+                        className={`verification-action-btn ${profileIsVerified ? 'verified' : ''}`}
+                        onClick={confirmVerification}
+                        disabled={dashboardLoading || profileIsVerified}
+                    >
                         {profileIsVerified ? formatCountdown(verificationExpiry!) : 'Verify Profile'}
                     </button>
                 </section>
 
                 <section className="dashboard-section">
                     <div className="section-heading"><h2>Professional Information</h2></div>
+
                     <div className="information-grid">
                         <div className="information-card">
                             <span className="information-label">Total Skills</span>
                             <strong>{worker?.totalSkills ?? '—'}</strong>
                         </div>
+
                         <div className="information-card">
                             <span className="information-label">Total Nearby Clients</span>
                             <strong>{worker?.totalClients ?? '—'}</strong>
@@ -358,11 +409,13 @@ function WorkerDashboard() {
 
                 <section className="dashboard-section">
                     <div className="section-heading"><h2>Personal Information</h2></div>
+
                     <div className="information-grid">
                         <div className="information-card">
                             <span className="information-label">Full Name</span>
                             <strong>{worker?.fullName || '—'}</strong>
                         </div>
+
                         <div className="information-card">
                             <span className="information-label">Phone Number</span>
                             <strong>{worker?.phone || '—'}</strong>
@@ -372,11 +425,13 @@ function WorkerDashboard() {
 
                 <section className="dashboard-section">
                     <div className="section-heading"><h2>Location</h2></div>
+
                     <div className="information-grid">
                         <div className="information-card">
                             <span className="information-label">Latitude</span>
                             <strong>{worker?.latitude ?? '—'}</strong>
                         </div>
+
                         <div className="information-card">
                             <span className="information-label">Longitude</span>
                             <strong>{worker?.longitude ?? '—'}</strong>
@@ -390,17 +445,31 @@ function WorkerDashboard() {
             </footer>
 
             {notification && (
-                <div className="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notificationTitle" aria-describedby="notificationText"
-                    onClick={event => event.target === event.currentTarget && hideModal()}>
+                <div
+                    className="notification-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="notificationTitle"
+                    aria-describedby="notificationText"
+                    onClick={event => event.target === event.currentTarget && hideModal()}
+                >
                     <div className={`notification-card ${notification.type}`}>
-                        <button type="button" className="notification-close-button" onClick={hideModal} aria-label="Close notification"
-                            hidden={notification.confirmation || dashboardLoading || otpSending || logoutLoading}>×</button>
+                        <button
+                            type="button"
+                            className="notification-close-button"
+                            onClick={hideModal}
+                            aria-label="Close notification"
+                            hidden={notification.confirmation || busy}
+                        >
+                            ×
+                        </button>
 
                         <div className="notification-icon" aria-hidden="true">
                             {notification.type === 'error' ? '!' : notification.type === 'info' ? 'i' : notification.type === 'confirm' ? '?' : '✓'}
                         </div>
 
                         <h2 id="notificationTitle">{notification.title}</h2>
+
                         <p id="notificationText">
                             {cooldownExpiry && cooldownExpiry > currentTime
                                 ? `${notification.message}\n\n${formatCooldown(cooldownExpiry)}`
@@ -409,11 +478,29 @@ function WorkerDashboard() {
 
                         <div className="notification-actions">
                             {notification.confirmation && (
-                                <button type="button" className="notification-no-button" onClick={() => setNotification(null)} disabled={dashboardLoading || otpSending || logoutLoading}>No</button>
+                                <button
+                                    type="button"
+                                    className="notification-no-button"
+                                    onClick={() => setNotification(null)}
+                                    disabled={busy}
+                                >
+                                    No
+                                </button>
                             )}
+
                             {!notification.buttonHidden && (
-                                <button type="button" onClick={handleNotificationAction} disabled={dashboardLoading || otpSending || logoutLoading}>
-                                    {dashboardLoading ? 'Connecting…' : otpSending ? 'Verifying…' : logoutLoading ? 'Logging Out…' : notification.buttonText}
+                                <button
+                                    type="button"
+                                    onClick={handleNotificationAction}
+                                    disabled={busy}
+                                >
+                                    {dashboardLoading
+                                        ? 'Connecting…'
+                                        : otpSending
+                                            ? 'Verifying…'
+                                            : logoutLoading
+                                                ? 'Logging Out…'
+                                                : notification.buttonText}
                                 </button>
                             )}
                         </div>
