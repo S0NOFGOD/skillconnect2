@@ -207,19 +207,11 @@ function WorkerDashboard() {
         }
 
         if (notification.action) {
-            const action = notification.action;
-
-            if (notification.confirmation) {
-                setOtpSending(true);
-            }
-
             try {
-                await action();
+                await notification.action();
             } catch (error) {
                 console.error('Notification action failed:', error);
                 showModal('Something Went Wrong', 'Please try again.', 'error');
-            } finally {
-                if (notification.confirmation) setOtpSending(false);
             }
 
             return;
